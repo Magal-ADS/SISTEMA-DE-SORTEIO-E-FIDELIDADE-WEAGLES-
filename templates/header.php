@@ -15,6 +15,8 @@ if (session_status() === PHP_SESSION_NONE) {
     
     <title>Sistema de Sorteio</title>
     
+    <link rel="icon" type="image/png" href="/favicon.png">
+    
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
