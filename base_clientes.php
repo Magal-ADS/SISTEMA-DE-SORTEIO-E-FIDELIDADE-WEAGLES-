@@ -1,16 +1,21 @@
 <?php
-// /base_clientes.php (Versão Final Dinâmica)
+// /base_clientes.php
 
-session_start();
-if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] != 1) {
+// 1. BLOCO DE SEGURANÇA ATUALIZADO
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+// Verifica se o usuário está logado E se o cargo é de Administrador (1)
+if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     header("Location: login.php");
     exit();
 }
 
+// O resto do seu código permanece exatamente o mesmo
 include 'templates/header.php';
 require_once 'php/db_config.php';
 
-// --- NOVO: BUSCA AS CONFIGURAÇÕES DOS FILTROS NO BANCO ---
+// --- BUSCA AS CONFIGURAÇÕES DOS FILTROS NO BANCO ---
 $configs = [];
 $result_configs = $link->query("SELECT chave, valor FROM configuracoes WHERE chave LIKE 'filtro_%'");
 if ($result_configs) {
@@ -18,7 +23,6 @@ if ($result_configs) {
         $configs[$row['chave']] = $row['valor'];
     }
 }
-// Define valores padrão caso algo falhe na busca
 $inativos_meses = $configs['filtro_inativos_meses'] ?? 6;
 $gastos_altos_valor = $configs['filtro_gastos_altos_valor'] ?? 1000;
 $gastos_altos_dias = $configs['filtro_gastos_altos_dias'] ?? 90;
@@ -37,7 +41,7 @@ switch ($filtro_ativo) {
         $stmt->bind_param("i", $admin_id);
         break;
 
-    case 'inativos': // Renomeado para ser genérico
+    case 'inativos':
         $sql = "SELECT c.nome_completo, c.whatsapp, c.data_nascimento, c.data_cadastro 
                 FROM clientes c LEFT JOIN (
                     SELECT cliente_id, MAX(data_compra) as ultima_compra FROM compras GROUP BY cliente_id
@@ -45,7 +49,7 @@ switch ($filtro_ativo) {
                 WHERE c.usuario_id = ? AND (ultimas_compras.ultima_compra IS NULL OR ultimas_compras.ultima_compra < DATE_SUB(CURDATE(), INTERVAL ? MONTH))
                 ORDER BY c.nome_completo ASC";
         $stmt = $link->prepare($sql);
-        $stmt->bind_param("ii", $admin_id, $inativos_meses); // Usa a variável
+        $stmt->bind_param("ii", $admin_id, $inativos_meses);
         break;
 
     case 'gastos_altos':
@@ -56,7 +60,7 @@ switch ($filtro_ativo) {
                 HAVING SUM(co.valor) >= ?
                 ORDER BY total_gasto DESC";
         $stmt = $link->prepare($sql);
-        $stmt->bind_param("iid", $admin_id, $gastos_altos_dias, $gastos_altos_valor); // Usa as variáveis
+        $stmt->bind_param("iid", $admin_id, $gastos_altos_dias, $gastos_altos_valor);
         break;
 
     case 'todos':

@@ -1,14 +1,17 @@
 <?php
 // /gerenciamento.php
 
-session_start();
+// BLOCO DE SEGURANÇA ATUALIZADO
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 // Segurança: Apenas o Admin (CARGO = 1) pode acessar esta página.
-if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] != 1) {
+if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     header("Location: login.php");
     exit();
 }
 
-// Inclui o header do admin, que já tem o menu de navegação.
+// O resto do seu código continua igual.
 include 'templates/header.php';
 ?>
 

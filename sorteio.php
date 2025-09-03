@@ -1,19 +1,30 @@
 <?php
-// /sorteio.php (Versão Festa Completa!)
+// /sorteio.php
 
-session_start();
-if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] != 1) {
+// 1. BLOCO DE SEGURANÇA ATUALIZADO
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+// Verifica se o usuário está logado E se o cargo é de Administrador (1)
+if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     header("Location: login.php");
     exit();
 }
 
 require_once 'php/db_config.php';
 
+// 2. BUSCA DO TOTAL DE CUPONS (VERSÃO MAIS SEGURA)
 $total_cupons = 0;
 $admin_id = $_SESSION['usuario_id'];
-$result = $link->query("SELECT COUNT(*) as total FROM sorteio WHERE usuario_id = $admin_id");
-if ($result) {
-    $total_cupons = $result->fetch_assoc()['total'];
+$sql_cupons = "SELECT COUNT(*) as total FROM sorteio WHERE usuario_id = ?";
+if ($stmt_cupons = $link->prepare($sql_cupons)) {
+    $stmt_cupons->bind_param("i", $admin_id);
+    $stmt_cupons->execute();
+    $result = $stmt_cupons->get_result();
+    if ($result) {
+        $total_cupons = $result->fetch_assoc()['total'];
+    }
+    $stmt_cupons->close();
 }
 
 include 'templates/header.php';
@@ -22,7 +33,7 @@ include 'templates/header.php';
 <title>Realizar Sorteio</title>
 
 <style>
-    /* ... (CSS anterior para .sorteio-container, .urna-info, etc.) ... */
+    /* ... (Todo o seu CSS continua o mesmo) ... */
     .sorteio-container { text-align: center; position: relative; }
     .urna-info { background: #ffffff; padding: 0.75rem 1.5rem; border-radius: 50px; display: inline-flex; align-items: center; gap: 0.75rem; margin-bottom: 2.5rem; border: 1px solid #f0e5d8; box-shadow: 0 4px 10px rgba(0,0,0,0.05); font-size: 1.1rem; color: #555; font-weight: 500; }
     .urna-info span { font-size: 1.75rem; font-weight: 700; color: #E65C4F; }
@@ -37,17 +48,7 @@ include 'templates/header.php';
     .countdown-overlay.visible { opacity: 1; visibility: visible; }
     #countdown-text { font-size: 15vw; font-weight: 700; color: white; animation: countdown-pop 1s ease-out forwards; }
     @keyframes countdown-pop { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-
-    /* === NOVA CAMADA PARA AS ANIMAÇÕES === */
-    #animation-container {
-        position: fixed; /* Fixa na tela inteira */
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 1001; /* Z-index alto para ficar por cima de tudo */
-        pointer-events: none; /* Permite clicar através da camada */
-    }
+    #animation-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1001; pointer-events: none; }
 </style>
 
 <div class="page-container sorteio-container">
@@ -58,15 +59,12 @@ include 'templates/header.php';
 </div>
 
 <div id="countdown-overlay" class="countdown-overlay"> <span id="countdown-text"></span> </div>
-
 <div id="animation-container"></div>
-
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <script src="js/fireworks.js"></script>
-
 <script>
+// ... (Todo o seu JavaScript continua o mesmo) ...
 document.addEventListener('DOMContentLoaded', function() {
-    // Seleciona o novo container de animação
     const animationContainer = document.getElementById('animation-container');
     const btnSortear = document.getElementById('btn-sortear');
     const resultadoContainer = document.getElementById('resultado-container');
@@ -76,14 +74,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const countdownOverlay = document.getElementById('countdown-overlay');
     const countdownText = document.getElementById('countdown-text');
     let listaDeNomes = [];
-
     fetch('php/get_participantes.php').then(res => res.json()).then(data => {
         if (data.status === 'success' && data.participantes.length > 0) listaDeNomes = data.participantes;
     });
-
-    // === NOVA FUNÇÃO PARA A CHUVA DE CONFETES ===
     function startConfetti() {
-        const duration = 5 * 1000; // Confetes por 5 segundos
+        const duration = 5 * 1000;
         const animationEnd = Date.now() + duration;
         (function frame() {
             confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
@@ -93,11 +88,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }());
     }
-
     btnSortear.addEventListener('click', function() {
         if (listaDeNomes.length === 0) { alert("Não há participantes para sortear!"); return; }
-        
-        // ... (Toda a lógica da contagem regressiva e do slot machine continua a mesma) ...
         btnSortear.disabled = true; btnSortear.textContent = 'Aguarde...'; resultadoContainer.classList.remove('visible');
         let count = 3; countdownOverlay.classList.add('visible'); countdownText.textContent = count;
         let countdownInterval = setInterval(() => {
@@ -114,7 +106,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 80);
             setTimeout(() => { clearInterval(animacaoIntervalo); buscarVencedorReal(); }, 3000);
         }
-
         function buscarVencedorReal() {
             fetch('php/realizar_sorteio.php', { method: 'POST' })
             .then(response => response.json())
@@ -124,14 +115,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     cpfGanhador.textContent = data.ganhador.cpf;
                     whatsappGanhador.textContent = data.ganhador.whatsapp;
                     btnSortear.textContent = 'Sortear Novamente';
-                    
-                    // === DISPARA A FESTA COMPLETA! ===
                     const fireworks = new Fireworks(animationContainer);
                     fireworks.start();
-                    startConfetti(); // Chama os confetes também
-                    
-                    setTimeout(() => fireworks.stop(), 5000); // Para os fogos após 5 segundos
-
+                    startConfetti();
+                    setTimeout(() => fireworks.stop(), 5000);
                 } else {
                     alert('Erro: ' + data.message);
                     btnSortear.textContent = 'Tentar Novamente';
