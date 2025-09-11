@@ -7,20 +7,20 @@ header('Content-Type: application/json');
 
 $response = ['status' => 'error', 'message' => 'Ocorreu um erro.'];
 
-if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] != 1) {
+// BLOCO DE SEGURANÇA CORRIGIDO
+if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     $response['message'] = 'Acesso não autorizado.';
     echo json_encode($response);
     exit;
 }
 
+// O resto do seu código, 100% intacto
 $id = $_GET['id'] ?? 0;
-
 if (empty($id)) {
     $response['message'] = 'ID do funcionário não fornecido.';
     echo json_encode($response);
     exit;
 }
-
 $sql = "SELECT nome, cpf, CARGO FROM usuarios WHERE id = ?";
 if ($stmt = $link->prepare($sql)) {
     $stmt->bind_param("i", $id);
@@ -36,7 +36,6 @@ if ($stmt = $link->prepare($sql)) {
     }
     $stmt->close();
 }
-
 $link->close();
 echo json_encode($response);
 ?>

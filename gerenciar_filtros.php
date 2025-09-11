@@ -1,16 +1,17 @@
 <?php
 // /gerenciar_filtros.php
 
-session_start();
+// BLOCO DE SEGURANÇA ATUALIZADO
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 // Segurança: Apenas o Admin (CARGO = 1) pode acessar.
-if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] != 1) {
+if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     header("Location: login.php");
     exit();
 }
 
 require_once 'php/db_config.php';
-
-// Busca todas as configurações de filtros salvas no banco
 $configuracoes = [];
 $result = $link->query("SELECT chave, valor, descricao, tipo_input FROM configuracoes WHERE chave LIKE 'filtro_%'");
 if ($result) {
@@ -19,11 +20,31 @@ if ($result) {
     }
 }
 $link->close();
-
 include 'templates/header.php';
 ?>
 
 <title>Gerenciar Filtros</title>
+
+<style>
+    /* Estilos para o tema escuro */
+    .page-header h1 { color: var(--cor-dourado) !important; }
+    .page-header p { color: var(--cor-branco) !important; opacity: 0.8; }
+
+    /* Adapta o formulário */
+    .settings-form {
+        background-color: rgba(44, 44, 44, 0.5) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    .settings-form h2, .settings-form label {
+        color: var(--cor-branco) !important;
+    }
+    .form-group input {
+        background-color: rgba(0,0,0,0.2) !important;
+        border-color: rgba(255,255,255,0.2) !important;
+        color: var(--cor-branco) !important;
+    }
+</style>
 
 <div class="page-container">
     <header class="page-header">
@@ -32,22 +53,18 @@ include 'templates/header.php';
     </header>
 
     <form id="form-filtros" action="php/salvar_configuracoes.php" method="POST" class="settings-form">
-        
         <div class="form-group">
             <label for="filtro_inativos_meses"><?php echo htmlspecialchars($configuracoes['filtro_inativos_meses']['descricao']); ?></label>
             <input type="number" name="filtro_inativos_meses" id="filtro_inativos_meses" value="<?php echo htmlspecialchars($configuracoes['filtro_inativos_meses']['valor']); ?>" required>
         </div>
-
         <div class="form-group">
             <label for="filtro_gastos_altos_valor"><?php echo htmlspecialchars($configuracoes['filtro_gastos_altos_valor']['descricao']); ?></label>
             <input type="number" step="0.01" name="filtro_gastos_altos_valor" id="filtro_gastos_altos_valor" value="<?php echo htmlspecialchars($configuracoes['filtro_gastos_altos_valor']['valor']); ?>" required>
         </div>
-        
         <div class="form-group">
             <label for="filtro_gastos_altos_dias"><?php echo htmlspecialchars($configuracoes['filtro_gastos_altos_dias']['descricao']); ?></label>
             <input type="number" name="filtro_gastos_altos_dias" id="filtro_gastos_altos_dias" value="<?php echo htmlspecialchars($configuracoes['filtro_gastos_altos_dias']['valor']); ?>" required>
         </div>
-
         <button type="submit" class="btn btn-verde" id="btn-salvar-filtros">Salvar Alterações</button>
         <p id="form-success-message" class="success-message"></p>
     </form>
@@ -102,7 +119,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-
 
 <?php
 // Inclui o rodapé

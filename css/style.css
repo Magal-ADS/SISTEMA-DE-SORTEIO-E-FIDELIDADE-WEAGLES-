@@ -2,14 +2,14 @@
 /* CSS GERAL E VARIÁVEIS DE COR              */
 /* ========================================= */
 :root {
-    --cor-fundo: #FFF5E1;
-    --cor-rosa: #F87575;
-    --cor-laranja: #FFA952;
-    --cor-verde: #2E8B57;
-    --cor-texto-principal: #594545;
-    --cor-texto-secundario: #816C6C;
-    --cor-branco: #FFFFFF;
-    --cor-input-borda: #E0E0E0;
+    --cor-fundo: #f0f0f0;                /* Cinza bem claro para o fundo */
+    --cor-dourado: #D4AF37;              /* Dourado como cor de destaque principal */
+    --cor-cinza-escuro: #2c2c2c;         /* Cinza escuro/quase preto para botões e elementos */
+    --cor-sucesso: #5a8e5a;              /* Um verde musgo que combina com dourado */
+    --cor-texto-principal: #1a1a1a;      /* Preto suave para texto principal */
+    --cor-texto-secundario: #666666;     /* Cinza médio para texto secundário */
+    --cor-branco: #FFFFFF;               /* Branco para texto em botões escuros */
+    --cor-input-borda: #cccccc;          /* Cinza claro para bordas */
     font-family: 'Poppins', sans-serif;
 }
 
@@ -19,8 +19,16 @@
 /* ESTRUTURA PRINCIPAL DA PÁGINA             */
 /* ========================================= */
 body {
-    background-color: var(--cor-fundo);
-    padding-top: 70px; /* Espaço para o header fixo */
+    background-color: var(--cor-fundo); /* Cor de fundo caso a imagem falhe em carregar */
+    background-image: url('../images/fundo.jpg'); /* Caminho para a sua imagem */
+    
+    /* As regras abaixo garantem que a imagem se comporte bem em qualquer tela */
+    background-size: cover;               /* Faz a imagem cobrir toda a tela, sem distorcer */
+    background-position: center center;   /* Centraliza a imagem */
+    background-repeat: no-repeat;         /* Evita que a imagem se repita */
+    background-attachment: fixed;         /* Deixa a imagem fixa no fundo ao rolar a página (efeito legal!) */
+    
+    padding-top: 70px;
 }
 
 .main-content {
@@ -40,7 +48,7 @@ body {
     background-color: var(--cor-branco);
     border-radius: 24px;
     padding: 40px 30px;
-    box-shadow: 0 8px 32px rgba(132, 84, 84, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -56,18 +64,18 @@ body {
     overflow: hidden;
 }
 
-h1 { font-size: 26px; font-weight: 700; color: var(--cor-rosa); margin-bottom: 12px; }
+h1 { font-size: 26px; font-weight: 700; color: var(--cor-texto-principal); margin-bottom: 12px; }
 p.subtitle { font-size: 16px; color: var(--cor-texto-secundario); line-height: 1.6; margin-bottom: 30px; }
 .form-group { width: 100%; text-align: left; margin-bottom: 15px; }
 .form-group label { font-weight: 500; color: var(--cor-texto-secundario); font-size: 14px; margin-bottom: 8px; display: block; }
 .form-group input, .form-group select { width: 100%; height: 50px; padding: 0 15px; border-radius: 10px; border: 1px solid var(--cor-input-borda); font-size: 16px; font-family: 'Poppins', sans-serif; }
-.form-group input:focus, .form-group select:focus { outline: 2px solid var(--cor-laranja); border-color: transparent; }
+.form-group input:focus, .form-group select:focus { outline: 2px solid var(--cor-dourado); border-color: transparent; }
 .btn { display: inline-block; width: 100%; padding: 15px; border: none; border-radius: 50px; font-size: 16px; font-weight: 700; text-decoration: none; color: var(--cor-branco); cursor: pointer; transition: transform 0.2s ease-out, box-shadow 0.2s ease-out; margin-top: 15px; }
 .btn:hover { transform: translateY(-3px); }
-.btn-laranja { background-image: linear-gradient(45deg, var(--cor-laranja), var(--cor-rosa)); }
-.btn-laranja:hover { box-shadow: 0 6px 20px rgba(248, 117, 117, 0.4); }
-.btn-verde { background-color: var(--cor-verde); }
-.btn-verde:hover { box-shadow: 0 6px 20px rgba(46, 139, 87, 0.4); }
+.btn-laranja { background: var(--cor-cinza-escuro); }
+.btn-laranja:hover { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2); }
+.btn-verde { background-color: var(--cor-sucesso); }
+.btn-verde:hover { box-shadow: 0 6px 20px rgba(90, 142, 90, 0.4); }
 .security-info { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; color: var(--cor-texto-secundario); margin-top: 30px; }
 
 /* ========================================= */
@@ -77,10 +85,10 @@ p.subtitle { font-size: 16px; color: var(--cor-texto-secundario); line-height: 1
 .info-card {
     display: flex;
     align-items: center;
-    gap: 1rem; /* Ajoute un espace entre l'icône et le texte */
+    gap: 1rem;
     width: 100%;
     background-color: #f9f9f9;
-    border: 1px solid #f0f0f0;
+    border: 1px solid #e0e0e0;
     border-radius: 12px;
     padding: 12px 15px;
     margin-bottom: 30px;
@@ -89,7 +97,6 @@ p.subtitle { font-size: 16px; color: var(--cor-texto-secundario); line-height: 1
 
 .info-card-icon {
     font-size: 24px;
-    /* La marge à droite n'est plus nécessaire car nous utilisons 'gap' */
 }
 
 .info-card-text {
@@ -128,15 +135,14 @@ p.subtitle { font-size: 16px; color: var(--cor-texto-secundario); line-height: 1
 }
 
 .header-brand a { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-.header-shop-icon { font-size: 24px; color: var(--cor-rosa); }
+.header-shop-icon { font-size: 24px; color: var(--cor-dourado); }
 .header-title { font-weight: 700; font-size: 18px; color: var(--cor-texto-principal); }
 
-/* --- Botões do Header (Login e Logout) --- */
 .btn-login-header,
 .btn-logout {
     text-decoration: none;
     color: var(--cor-branco);
-    background-color: var(--cor-rosa);
+    background-color: var(--cor-dourado);
     padding: 8px 20px;
     border-radius: 20px;
     font-weight: 500;
@@ -147,14 +153,13 @@ p.subtitle { font-size: 16px; color: var(--cor-texto-secundario); line-height: 1
 
 .btn-login-header:hover,
 .btn-logout:hover {
-    background-color: #E04F4F; /* Um tom de rosa um pouco mais escuro */
+    background-color: #a8874a; /* Dourado mais escuro */
     transform: translateY(-1px);
 }
 
-/* --- Navegação do Admin --- */
 .header-nav { display: flex; gap: 40px; }
 .header-nav a { text-decoration: none; color: var(--cor-texto-secundario); font-weight: 500; font-size: 16px; padding-bottom: 5px; border-bottom: 2px solid transparent; transition: color 0.2s, border-bottom-color 0.2s; }
-.header-nav a:hover { color: var(--cor-texto-principal); border-bottom-color: var(--cor-rosa); }
+.header-nav a:hover { color: var(--cor-texto-principal); border-bottom-color: var(--cor-dourado); }
 .header-actions { display: flex; align-items: center; gap: 20px; }
 
 /* ========================================= */
@@ -308,7 +313,7 @@ p.subtitle { font-size: 16px; color: var(--cor-texto-secundario); line-height: 1
 .data-table th {
     font-weight: 600;
     background-color: transparent;
-    color: #E65C4F; /* Cor do tema para o texto do cabeçalho */
+    color: var(--cor-texto-principal); /* <-- Garanta que esta linha esteja assim */
     text-transform: uppercase;
     font-size: 0.8rem;
     letter-spacing: 0.5px;
@@ -694,4 +699,21 @@ background-color: #218838;
 .btn-voltar-canto:hover {
     background-color: #E04F4F;
     transform: translateY(-1px);
+}
+
+/* Correções de Cor para a Base de Clientes */
+
+.page-header h1 {
+    color: var(--cor-texto-principal);
+}
+
+.filter-nav a.active {
+    background-color: var(--cor-dourado);
+    color: var(--cor-branco);
+    border-color: transparent;
+    box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);
+}
+
+.data-table th {
+    color: var(--cor-texto-principal);
 }

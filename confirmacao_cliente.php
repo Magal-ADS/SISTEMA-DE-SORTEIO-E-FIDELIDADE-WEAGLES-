@@ -2,19 +2,14 @@
 // /confirmacao_cliente.php
 
 session_start();
-
-// Segurança: Se não houver um cliente na sessão, volta para o início.
 if (!isset($_SESSION['cliente_id'])) {
     header('Location: cpf.php');
     exit();
 }
-
 require_once 'php/db_config.php';
 
-// Busca TODOS os dados do cliente que está na sessão para exibir no card
 $cliente_id = $_SESSION['cliente_id'];
 $cliente = null;
-
 $stmt = $link->prepare("SELECT nome_completo, cpf, whatsapp, data_nascimento FROM clientes WHERE id = ?");
 $stmt->bind_param("i", $cliente_id);
 $stmt->execute();
@@ -22,18 +17,61 @@ $result = $stmt->get_result();
 if ($result->num_rows === 1) {
     $cliente = $result->fetch_assoc();
 } else {
-    // Caso raro onde o ID da sessão não corresponde a um cliente.
     session_destroy();
     header('Location: cpf.php');
     exit();
 }
 $stmt->close();
 $link->close();
-
 include 'templates/header.php';
 ?>
 
 <title>Confirme seus Dados</title>
+
+<style>
+    /* Estilos para o card principal prateado/branco */
+    .card-container {
+        background-color: #f5f5f5 !important;
+        border: 1px solid #ddd !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* Títulos dentro do card principal */
+    .card-container h1 {
+        color: var(--cor-dourado) !important;
+    }
+    .card-container .subtitle {
+        color: var(--cor-texto-secundario) !important; /* Texto escuro no fundo claro */
+        opacity: 1;
+    }
+
+    /* Card interno com os dados */
+    .confirmation-card {
+        background-color: #e9ecef !important; /* Um cinza um pouco mais escuro para destaque */
+        border: 1px solid #dee2e6 !important;
+        backdrop-filter: none !important; /* Remove o efeito de vidro */
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem !important;
+    }
+    
+    /* Textos dentro do card interno */
+    .confirmation-card .info-item strong {
+        color: var(--cor-dourado) !important;
+        opacity: 1;
+    }
+    .confirmation-card .info-item span {
+        color: var(--cor-texto-principal) !important; /* Texto escuro */
+        opacity: 1;
+    }
+    
+    /* Modal de senha (mantém o tema escuro para contraste) */
+    .modal-box { background-color: #2c2c2c; }
+    .modal-title, .modal-text, .form-group label { color: var(--cor-branco); }
+    .modal-box .form-group input { background-color: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.2); color: var(--cor-branco); }
+    .modal-error { color: #ff8a8a; }
+    .modal-actions .btn-light { background-color: #444; color: var(--cor-branco); border: 1px solid #555; }
+</style>
 
 <div class="card-container">
     <h1>Confirme seus Dados</h1>
@@ -48,7 +86,7 @@ include 'templates/header.php';
     
     <p id="form-error-message" style="color: #D8000C; text-align: center; min-height: 20px;"></p>
 
-    <button type="button" id="btn-abrir-popup" class="btn btn-verde">Confirmar</button>
+    <button type="button" id="btn-abrir-popup" class="btn btn-verde">Confirmar e Registrar Compra</button>
 </div>
 
 
@@ -70,16 +108,14 @@ include 'templates/header.php';
 
 
 <script>
+    // Seu JavaScript funcional permanece 100% intacto
 document.addEventListener('DOMContentLoaded', function() {
-    // Seleção dos Elementos
     const btnAbrirPopup = document.getElementById('btn-abrir-popup');
     const modal = document.getElementById('modal-senha');
     const btnCancelar = document.getElementById('btn-cancelar-senha');
     const btnConfirmarSenha = document.getElementById('btn-confirmar-senha');
     const senhaInput = document.getElementById('senha_geral');
     const modalErrorMessage = document.getElementById('modal-error-message');
-
-    // Lógica para Abrir o Pop-up
     if (btnAbrirPopup) {
         btnAbrirPopup.addEventListener('click', function() {
             if(senhaInput) senhaInput.value = '';
@@ -90,25 +126,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
-    // Lógica para Fechar o Pop-up
     const closeModal = () => {
         if (modal) modal.classList.remove('visible');
     };
     if (btnCancelar) btnCancelar.addEventListener('click', closeModal);
     if (modal) modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-
-    // Lógica para Confirmar a Senha e Prosseguir
     if (btnConfirmarSenha) {
         btnConfirmarSenha.addEventListener('click', function() {
             const formData = new FormData();
             formData.append('senha_geral', senhaInput.value);
-
             btnConfirmarSenha.disabled = true;
             btnConfirmarSenha.textContent = 'Verificando...';
             modalErrorMessage.textContent = '';
-
-            // Envia a senha para o script PHP de verificação GERAL
             fetch('php/verificar_senha_geral.php', { 
                 method: 'POST', 
                 body: formData 
@@ -116,10 +145,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    // Se a senha estiver correta, redireciona para a próxima etapa
                     window.location.href = 'dados_compra.php';
                 } else {
-                    // Se estiver errada, mostra o erro e reativa o botão
                     modalErrorMessage.textContent = data.message;
                     btnConfirmarSenha.disabled = false;
                     btnConfirmarSenha.textContent = 'Liberar';

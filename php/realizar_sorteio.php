@@ -1,5 +1,5 @@
 <?php
-// /php/realizar_sorteio.php (Versão com exclusão de cupons do ganhador)
+// /php/realizar_sorteio.php
 
 session_start();
 require_once "db_config.php";
@@ -7,8 +7,8 @@ header('Content-Type: application/json');
 
 $response = ['status' => 'error', 'message' => 'Acesso não autorizado.'];
 
-// Segurança: Apenas o Admin (CARGO = 1) pode realizar um sorteio.
-if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] != 1) {
+// CORREÇÃO AQUI: Verificando a variável de sessão correta -> $_SESSION['cargo']
+if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     echo json_encode($response);
     exit;
 }
@@ -17,13 +17,9 @@ $admin_id = $_SESSION['usuario_id'];
 $winner_data = null;
 $winner_id = null;
 
-// --- INÍCIO DA TRANSAÇÃO ---
-// Isso garante que ou todas as operações (sortear e deletar) funcionam, ou nenhuma funciona.
 $link->begin_transaction();
-
 try {
     // 1. SORTEIA UM GANHADOR
-    // Sorteia UM cliente_id aleatoriamente da tabela de sorteio
     $sql_sorteio = "SELECT cliente_id FROM sorteio WHERE usuario_id = ? ORDER BY RAND() LIMIT 1";
     $stmt_sorteio = $link->prepare($sql_sorteio);
     $stmt_sorteio->bind_param("i", $admin_id);
@@ -46,13 +42,11 @@ try {
         }
         $stmt_cliente->close();
 
-        // Se não encontrou os dados do cliente, lança um erro para cancelar a transação
         if (!$winner_data) {
-            throw new Exception('Erro: Ganhador sorteado não encontrado na base de clientes.');
+            throw new Exception('Ganhador sorteado não encontrado na base de clientes.');
         }
 
         // 3. DELETA TODOS OS CUPONS DO GANHADOR
-        // Esta é a nova regra de negócio!
         $sql_delete = "DELETE FROM sorteio WHERE cliente_id = ? AND usuario_id = ?";
         $stmt_delete = $link->prepare($sql_delete);
         $stmt_delete->bind_param("ii", $winner_id, $admin_id);
@@ -60,7 +54,6 @@ try {
         $stmt_delete->close();
         
         // 4. CONFIRMA A TRANSAÇÃO
-        // Se chegamos até aqui, tudo deu certo. Confirma as operações.
         $link->commit();
 
         $response = [
@@ -69,15 +62,12 @@ try {
         ];
 
     } else {
-        // Não há cupons para sortear, então cancela a transação
         $link->rollback();
         $response['message'] = 'Não há nenhum número da sorte cadastrado para sortear!';
     }
-} catch (mysqli_sql_exception $exception) {
-    // Se qualquer um dos passos acima falhar, desfaz tudo
+} catch (Exception $exception) {
     $link->rollback();
-    $response['message'] = 'Ocorreu um erro durante o sorteio. Tente novamente.';
-    // Para depuração: error_log($exception->getMessage());
+    $response['message'] = 'Ocorreu um erro durante o sorteio: ' . $exception->getMessage();
 }
 
 $link->close();

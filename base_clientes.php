@@ -27,42 +27,29 @@ $inativos_meses = $configs['filtro_inativos_meses'] ?? 6;
 $gastos_altos_valor = $configs['filtro_gastos_altos_valor'] ?? 1000;
 $gastos_altos_dias = $configs['filtro_gastos_altos_dias'] ?? 90;
 
-
 // LÓGICA DOS FILTROS USANDO AS VARIÁVEIS DE CONFIGURAÇÃO
 $filtro_ativo = $_GET['filtro'] ?? 'todos';
 $clientes = [];
 $admin_id = $_SESSION['usuario_id'];
 $sql_base = "SELECT nome_completo, whatsapp, data_nascimento, data_cadastro FROM clientes ";
 
+// ... (seu switch case para os filtros continua o mesmo) ...
 switch ($filtro_ativo) {
     case 'aniversariantes_dia':
         $sql = $sql_base . "WHERE usuario_id = ? AND DAY(data_nascimento) = DAY(CURDATE()) AND MONTH(data_nascimento) = MONTH(CURDATE())";
         $stmt = $link->prepare($sql);
         $stmt->bind_param("i", $admin_id);
         break;
-
     case 'inativos':
-        $sql = "SELECT c.nome_completo, c.whatsapp, c.data_nascimento, c.data_cadastro 
-                FROM clientes c LEFT JOIN (
-                    SELECT cliente_id, MAX(data_compra) as ultima_compra FROM compras GROUP BY cliente_id
-                ) AS ultimas_compras ON c.id = ultimas_compras.cliente_id
-                WHERE c.usuario_id = ? AND (ultimas_compras.ultima_compra IS NULL OR ultimas_compras.ultima_compra < DATE_SUB(CURDATE(), INTERVAL ? MONTH))
-                ORDER BY c.nome_completo ASC";
+        $sql = "SELECT c.nome_completo, c.whatsapp, c.data_nascimento, c.data_cadastro FROM clientes c LEFT JOIN ( SELECT cliente_id, MAX(data_compra) as ultima_compra FROM compras GROUP BY cliente_id ) AS ultimas_compras ON c.id = ultimas_compras.cliente_id WHERE c.usuario_id = ? AND (ultimas_compras.ultima_compra IS NULL OR ultimas_compras.ultima_compra < DATE_SUB(CURDATE(), INTERVAL ? MONTH)) ORDER BY c.nome_completo ASC";
         $stmt = $link->prepare($sql);
         $stmt->bind_param("ii", $admin_id, $inativos_meses);
         break;
-
     case 'gastos_altos':
-        $sql = "SELECT c.nome_completo, c.whatsapp, c.data_nascimento, c.data_cadastro, SUM(co.valor) AS total_gasto
-                FROM clientes c JOIN compras co ON c.id = co.cliente_id
-                WHERE c.usuario_id = ? AND co.data_compra >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-                GROUP BY c.id
-                HAVING SUM(co.valor) >= ?
-                ORDER BY total_gasto DESC";
+        $sql = "SELECT c.nome_completo, c.whatsapp, c.data_nascimento, c.data_cadastro, SUM(co.valor) AS total_gasto FROM clientes c JOIN compras co ON c.id = co.cliente_id WHERE c.usuario_id = ? AND co.data_compra >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY c.id HAVING SUM(co.valor) >= ? ORDER BY total_gasto DESC";
         $stmt = $link->prepare($sql);
         $stmt->bind_param("iid", $admin_id, $gastos_altos_dias, $gastos_altos_valor);
         break;
-
     case 'todos':
     default:
         $sql = $sql_base . "WHERE usuario_id = ? ORDER BY data_cadastro DESC";
@@ -79,6 +66,52 @@ $stmt->close(); $link->close();
 
 <title>Base de Clientes</title>
 
+<style>
+    /* Deixa o título principal DOURADO */
+    .page-header h1 {
+        color: var(--cor-dourado) !important;
+    }
+
+    /* Deixa o subtítulo BRANCO */
+    .page-header p {
+        color: var(--cor-branco) !important;
+        opacity: 0.8; /* Leve transparência para suavizar */
+    }
+
+    /* Adapta os botões de filtro para o fundo escuro */
+    .filter-nav a {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: var(--cor-branco);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+    .filter-nav a:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-color: var(--cor-dourado);
+    }
+    .filter-nav a.active {
+        background: var(--cor-dourado) !important;
+        color: var(--cor-texto-principal) !important; /* Texto escuro no botão dourado */
+    }
+
+    /* Adapta a tabela para o fundo escuro (efeito vidro) */
+    .table-wrapper {
+        background-color: rgba(44, 44, 44, 0.5); /* Fundo cinza semi-transparente */
+        backdrop-filter: blur(10px); /* Efeito de desfoque no fundo */
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Deixa todo o texto da tabela BRANCO */
+    .data-table th, .data-table td {
+        color: var(--cor-branco) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .data-table th {
+        opacity: 0.9;
+    }
+    .data-table td {
+        opacity: 0.7;
+    }
+</style>
 <div class="page-container">
     <header class="page-header">
         <h1>Base de Clientes</h1>

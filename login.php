@@ -17,11 +17,11 @@ include 'templates/header.php';
 <title>Acessar o Sistema</title>
 
 <style>
-    /* Variáveis de cor para consistência */
+    /* Variáveis de cor para consistência com a nova paleta */
     :root {
-        --cor-fundo: #FFF5E1;
-        --cor-rosa: #F87575;
-        --cor-branco: #FFFFFF;
+        --cor-fundo: #f0f0f0;         /* Cinza bem claro */
+        --cor-dourado: #D4AF37;       /* Dourado */
+        --cor-branco: #FFFFFF;         /* Branco */
         font-family: 'Poppins', sans-serif;
     }
 
@@ -30,14 +30,14 @@ include 'templates/header.php';
         background-color: var(--cor-fundo);
     }
     
-    /* O SEU CÓDIGO CSS PARA O BOTÃO VOLTAR */
+    /* O SEU CÓDIGO CSS PARA O BOTÃO VOLTAR ATUALIZADO */
     .btn-voltar-canto {
         position: absolute;
         top: 20px;
         right: 20px;
         
         padding: 10px 20px;
-        background-color: var(--cor-rosa);
+        background-color: var(--cor-dourado); /* <-- COR ATUALIZADA */
         color: var(--cor-branco);
         border: none;
         border-radius: 20px;
@@ -48,7 +48,7 @@ include 'templates/header.php';
     }
 
     .btn-voltar-canto:hover {
-        background-color: #E04F4F;
+        background-color: #a8874a; /* <-- COR HOVER ATUALIZADA (dourado escuro) */
         transform: translateY(-1px);
     }
 </style>

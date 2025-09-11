@@ -1,19 +1,20 @@
 <?php
-// /php/salvar_configuracoes.php (Corrigido)
+// /php/salvar_configuracoes.php
 
 session_start();
 require_once "db_config.php";
 header('Content-Type: application/json');
 
-// Linha corrigida: 'status' sem o 's' extra
-$response = ['status' => 'error', 'message' => 'Ocorreu um erro.'];
+$response = ['status' => 'error', 'message' => 'Acesso não autorizado.'];
 
-if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] != 1) {
-    $response['message'] = 'Acesso não autorizado.';
+// BLOCO DE SEGURANÇA ATUALIZADO
+// Segurança: Apenas um admin logado (CARGO = 1) pode salvar configurações.
+if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     echo json_encode($response);
     exit;
 }
 
+// O resto do seu código, 100% intacto
 $novas_configuracoes = $_POST;
 $link->begin_transaction();
 

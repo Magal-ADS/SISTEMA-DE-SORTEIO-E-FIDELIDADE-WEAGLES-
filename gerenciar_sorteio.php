@@ -1,22 +1,78 @@
 <?php
 // /gerenciar_sorteio.php
 
-session_start();
-if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] != 1) {
+// 1. BLOCO DE SEGURANÇA ATUALIZADO
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     header("Location: login.php");
     exit();
 }
 
 require_once 'php/db_config.php';
 
+// 2. BUSCA DOS DADOS (VERSÃO MAIS SEGURA)
 $config_sorteio = $link->query("SELECT * FROM configuracoes WHERE chave = 'sorteio_valor_base_extra'")->fetch_assoc();
-$total_cupons = $link->query("SELECT COUNT(*) as total FROM sorteio WHERE usuario_id = {$_SESSION['usuario_id']}")->fetch_assoc()['total'];
-
+$total_cupons = 0;
+$admin_id = $_SESSION['usuario_id'];
+$sql_cupons = "SELECT COUNT(*) as total FROM sorteio WHERE usuario_id = ?";
+if ($stmt_cupons = $link->prepare($sql_cupons)) {
+    $stmt_cupons->bind_param("i", $admin_id);
+    $stmt_cupons->execute();
+    $result = $stmt_cupons->get_result();
+    if ($result) {
+        $total_cupons = $result->fetch_assoc()['total'];
+    }
+    $stmt_cupons->close();
+}
 $link->close();
 include 'templates/header.php';
 ?>
 
 <title>Gerenciar Sorteio</title>
+
+<style>
+    /* Estilos para o tema escuro */
+    .page-header h1 { color: var(--cor-dourado) !important; }
+    .page-header p { color: var(--cor-branco) !important; opacity: 0.8; }
+
+    /* Adapta o formulário (efeito vidro) */
+    .settings-form {
+        background-color: rgba(44, 44, 44, 0.5) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    /* Título do formulário BRANCO */
+    .settings-form h2 {
+        color: var(--cor-branco) !important;
+    }
+    /* Label (texto abaixo) DOURADO */
+    .settings-form label {
+        color: var(--cor-dourado) !important;
+        opacity: 0.9;
+    }
+    .form-group input {
+        background-color: rgba(0,0,0,0.2) !important;
+        border-color: rgba(255,255,255,0.2) !important;
+        color: var(--cor-branco) !important;
+    }
+
+    /* Adapta a "Zona de Perigo" */
+    .danger-zone {
+        background-color: rgba(220, 53, 69, 0.2) !important;
+        border-color: rgba(220, 53, 69, 0.5) !important;
+    }
+    .danger-zone h2 { color: #ffc107 !important; }
+    .danger-zone p { color: rgba(255, 255, 255, 0.8) !important; }
+    .danger-zone strong { color: var(--cor-branco) !important; }
+
+    /* Adapta o Modal de confirmação */
+    .modal-box { background-color: #2c2c2c !important; }
+    .modal-title, .modal-text, .modal-text strong { color: var(--cor-branco) !important; }
+    .modal-box .form-group input { background-color: rgba(0,0,0,0.2) !important; border-color: rgba(255,255,255,0.2) !important; color: var(--cor-branco) !important; }
+    .modal-actions .btn-light { background-color: #444 !important; color: var(--cor-branco) !important; border: 1px solid #555 !important; }
+</style>
 
 <div class="page-container">
     <header class="page-header">

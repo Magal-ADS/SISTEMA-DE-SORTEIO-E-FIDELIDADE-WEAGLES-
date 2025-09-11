@@ -1,9 +1,12 @@
 <?php
-// /gerenciar_funcionarios.php (Versão com CRUD Completo)
+// /gerenciar_funcionarios.php
 
-session_start();
+// BLOCO DE SEGURANÇA ATUALIZADO
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 // Segurança: Apenas o Admin (CARGO = 1) pode acessar.
-if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] != 1) {
+if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     header("Location: login.php");
     exit();
 }
@@ -13,7 +16,6 @@ require_once 'php/db_config.php';
 // Busca todos os usuários que NÃO são o admin principal.
 $funcionarios = [];
 $admin_id = $_SESSION['usuario_id'];
-// Excluimos o cargo 1 e o próprio admin logado, para segurança.
 $stmt = $link->prepare("SELECT id, nome, cpf, CARGO FROM usuarios WHERE CARGO != 1 AND id != ?");
 $stmt->bind_param("i", $admin_id);
 $stmt->execute();
@@ -28,6 +30,25 @@ include 'templates/header.php';
 ?>
 
 <title>Gerenciar Funcionários</title>
+
+<style>
+    /* Estilos para o tema escuro */
+    .page-header h1 { color: var(--cor-dourado) !important; }
+    .page-header p { color: var(--cor-branco) !important; opacity: 0.8; }
+
+    /* Adapta a tabela (efeito vidro) e textos */
+    .table-wrapper { background-color: rgba(44, 44, 44, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    .data-table th, .data-table td { color: var(--cor-branco) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+    .data-table th { opacity: 0.9; }
+    .data-table td { opacity: 0.7; }
+
+    /* Adapta os modais (pop-ups) */
+    .modal-box { background-color: #2c2c2c; }
+    .modal-title, .modal-text, .form-group label, .modal-text strong { color: var(--cor-branco); }
+    .modal-box .form-group input, .modal-box .form-group select { background-color: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.2); color: var(--cor-branco); }
+    .modal-error { color: #ff8a8a; } /* Um vermelho mais claro para melhor leitura no escuro */
+    .modal-actions .btn-light { background-color: #444; color: var(--cor-branco); border: 1px solid #555; }
+</style>
 
 <div class="page-container">
     <header class="page-header with-action">
@@ -152,8 +173,6 @@ include 'templates/header.php';
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const tabelaBody = document.getElementById('tabela-funcionarios-body');
-
-    // --- LÓGICA DE ADICIONAR FUNCIONÁRIO ---
     const modalAdicionar = document.getElementById('modal-adicionar-funcionario');
     const formAdicionar = document.getElementById('form-adicionar-funcionario');
     const btnAbrirPopupAdicionar = document.getElementById('btn-abrir-popup-adicionar');
@@ -178,7 +197,6 @@ document.addEventListener('DOMContentLoaded', function() {
             btnSalvar.disabled = true;
             btnSalvar.textContent = 'Salvando...';
             erroAdicionarMsg.textContent = '';
-
             const formData = new FormData(formAdicionar);
             fetch(formAdicionar.action, { method: 'POST', body: formData })
             .then(response => response.json())
@@ -210,7 +228,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- LÓGICA DE REMOVER E EDITAR (USANDO DELEGAÇÃO DE EVENTOS) ---
     const modalRemover = document.getElementById('modal-confirmar-remocao');
     const formRemover = document.getElementById('form-confirmar-remocao');
     const btnCancelarRemocao = document.getElementById('btn-cancelar-remocao');
@@ -218,14 +235,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const idFuncionarioInput = document.getElementById('id-funcionario-para-remover');
     const senhaAdminInput = document.getElementById('senha_admin');
     const erroRemoverMsg = document.getElementById('modal-remover-error-message');
-
     const modalEditar = document.getElementById('modal-editar-funcionario');
     const formEditar = document.getElementById('form-editar-funcionario');
     const btnCancelarEdicao = document.getElementById('btn-cancelar-edicao');
     const erroEditarMsg = document.getElementById('modal-editar-error-message');
 
     tabelaBody.addEventListener('click', function(e) {
-        // Lógica de Remover
         if (e.target && e.target.classList.contains('delete')) {
             const button = e.target;
             nomeFuncionarioSpan.textContent = `"${button.dataset.nome}"`;
@@ -235,12 +250,9 @@ document.addEventListener('DOMContentLoaded', function() {
             modalRemover.classList.add('visible');
             senhaAdminInput.focus();
         }
-
-        // Lógica de Editar
         if (e.target && e.target.classList.contains('edit')) {
             const id = e.target.dataset.id;
             erroEditarMsg.textContent = '';
-            
             fetch(`php/get_funcionario.php?id=${id}`)
             .then(response => response.json())
             .then(data => {
@@ -259,7 +271,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Fechar modais de Remover e Editar
     const closeModalRemover = () => modalRemover.classList.remove('visible');
     if (btnCancelarRemocao) btnCancelarRemocao.addEventListener('click', closeModalRemover);
     if (modalRemover) modalRemover.addEventListener('click', e => { if (e.target === modalRemover) closeModalRemover(); });
@@ -268,7 +279,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (btnCancelarEdicao) btnCancelarEdicao.addEventListener('click', closeModalEditar);
     if (modalEditar) modalEditar.addEventListener('click', e => { if (e.target === modalEditar) closeModalEditar(); });
 
-    // Enviar formulário de Remoção
     if (formRemover) {
         formRemover.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -276,7 +286,6 @@ document.addEventListener('DOMContentLoaded', function() {
             btnConfirmar.disabled = true;
             btnConfirmar.textContent = 'Removendo...';
             erroRemoverMsg.textContent = '';
-            
             const formData = new FormData(formRemover);
             fetch(formRemover.action, { method: 'POST', body: formData })
             .then(response => response.json())
@@ -298,8 +307,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-
-    // Enviar formulário de Edição
     if (formEditar) {
         formEditar.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -307,7 +314,6 @@ document.addEventListener('DOMContentLoaded', function() {
             btnSalvarEdicao.disabled = true;
             btnSalvarEdicao.textContent = 'Salvando...';
             erroEditarMsg.textContent = '';
-
             const formData = new FormData(formEditar);
             fetch(formEditar.action, { method: 'POST', body: formData })
             .then(response => response.json())

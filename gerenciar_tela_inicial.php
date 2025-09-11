@@ -1,8 +1,11 @@
 <?php
-// /gerenciar_tela_inicial.php (Versão com Preview)
+// /gerenciar_tela_inicial.php
 
-session_start();
-if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] != 1) {
+// BLOCO DE SEGURANÇA ATUALIZADO
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     header("Location: login.php");
     exit();
 }
@@ -16,6 +19,29 @@ include 'templates/header.php';
 ?>
 
 <title>Gerenciar Tela Inicial</title>
+
+<style>
+    /* Estilos para o tema escuro */
+    .page-header h1 { color: var(--cor-dourado) !important; }
+    .page-header p { color: var(--cor-branco) !important; opacity: 0.8; }
+
+    /* Adapta o formulário e a área de preview (efeito vidro) */
+    .settings-form, .preview-area {
+        background-color: rgba(44, 44, 44, 0.5) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* Adapta os textos e campos do formulário */
+    .settings-form h2, .settings-form label, .preview-area h4 {
+        color: var(--cor-branco) !important;
+    }
+    .form-group textarea {
+        background-color: rgba(0,0,0,0.2) !important;
+        border-color: rgba(255,255,255,0.2) !important;
+        color: var(--cor-branco) !important;
+    }
+</style>
 
 <div class="page-container">
     <header class="page-header">
@@ -50,7 +76,6 @@ include 'templates/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- LÓGICA DE SALVAR O FORMULÁRIO (sem alterações) ---
     const form = document.getElementById('form-tela-inicial');
     const successMessage = document.getElementById('form-success-message');
     let isSubmitting = false;
@@ -82,14 +107,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- NOVA LÓGICA PARA A PRÉ-VISUALIZAÇÃO EM TEMPO REAL ---
     const textarea = document.getElementById('tela_inicial_info_card_texto');
     const previewText = document.getElementById('preview-text');
 
     if (textarea && previewText) {
-        // "Escuta" cada vez que uma tecla é pressionada no campo de texto
         textarea.addEventListener('input', function() {
-            // Atualiza o texto da pré-visualização com o valor do campo
             previewText.textContent = textarea.value;
         });
     }
