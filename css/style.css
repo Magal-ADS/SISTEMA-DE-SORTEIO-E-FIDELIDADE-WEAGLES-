@@ -717,3 +717,80 @@ background-color: #218838;
 .data-table th {
     color: var(--cor-texto-principal);
 }
+
+/* ========================================= */
+/* === ESTILOS DO MENU DROPDOWN DO USUÁRIO === */
+/* ========================================= */
+
+.user-menu-container {
+    position: relative; /* Essencial para o posicionamento do dropdown */
+}
+
+.user-menu-button {
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    transition: all 0.2s ease-in-out;
+}
+
+.user-menu-button:hover {
+    background-color: #f5f5f5; /* Um cinza bem claro para o hover */
+}
+
+.user-menu-button .header-title {
+    color: var(--cor-texto-principal);
+}
+
+.user-menu-button .dropdown-icon {
+    font-size: 0.7rem;
+    color: var(--cor-texto-secundario);
+    transition: transform 0.2s ease-in-out;
+}
+
+.user-menu-button.active .dropdown-icon {
+    transform: rotate(180deg);
+}
+
+.user-dropdown-menu {
+    position: absolute;
+    top: 120%; /* Posição abaixo do botão */
+    left: 0;
+    background-color: var(--cor-branco);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    min-width: 180px;
+    z-index: 1100;
+    overflow: hidden;
+    border: 1px solid #eee;
+    
+    /* Começa escondido */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease-in-out;
+}
+
+.user-dropdown-menu.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.user-dropdown-menu a {
+    display: block;
+    padding: 12px 16px;
+    text-decoration: none;
+    color: var(--cor-texto-principal);
+    font-size: 0.95rem;
+}
+
+.user-dropdown-menu a:hover {
+    background-color: #f9f9f9;
+    color: var(--cor-dourado);
+}
