@@ -78,7 +78,7 @@ if (!isset($show_header) || $show_header !== false):
                 <div class="header-brand">
                     <a href="index.php">
                         <span class="header-shop-icon">🎁</span>
-                        <span class="header-title">Junte Pontos e troque por prêmios</span>
+                        <span class="header-title">Compre e Concorra aos nossos prémios</span>
                     </a>
                 </div>
                 <div class="header-actions">

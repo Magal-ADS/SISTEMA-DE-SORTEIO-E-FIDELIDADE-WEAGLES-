@@ -1,6 +1,4 @@
 <?php 
-// É uma boa prática iniciar a sessão e limpar dados antigos
-// para garantir que cada fluxo de cliente comece do zero.
 session_start();
 unset($_SESSION['cliente_id']);
 unset($_SESSION['cliente_nome']);
@@ -19,7 +17,8 @@ include 'templates/header.php';
     <form id="cpf-form" style="width: 100%;">
         <div class="form-group">
             <label for="cpf">CPF</label>
-            <input type="text" id="cpf" name="cpf" placeholder="000.000.000-00" required>
+            <input type="text" id="cpf" name="cpf" placeholder="000.000.000-00" required 
+                   maxlength="14" inputmode="numeric">
         </div>
         
         <p id="error-message" style="color: #D8000C; text-align: center; min-height: 20px;"></p>
@@ -29,51 +28,60 @@ include 'templates/header.php';
 </div>
 
 <script>
-// Adiciona um "ouvinte" ao evento de submissão do formulário
-document.getElementById('cpf-form').addEventListener('submit', function(event) {
-    // 1. Previne o comportamento padrão do formulário (que seria recarregar a página)
-    event.preventDefault();
+// ==================== MÁSCARA DE CPF (VERSÃO CORRIGIDA) ====================
+document.getElementById('cpf').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '').substring(0, 11);
+    const chars = value.split('');
+    let formattedValue = '';
 
-    // Seleciona os elementos do formulário que vamos usar
+    chars.forEach((char, index) => {
+        if (index === 3 || index === 6) {
+            formattedValue += '.';
+        }
+        if (index === 9) {
+            formattedValue += '-';
+        }
+        formattedValue += char;
+    });
+    
+    e.target.value = formattedValue;
+});
+
+
+// ==================== LÓGICA AJAX (sem alterações) ====================
+document.getElementById('cpf-form').addEventListener('submit', function(event) {
+    event.preventDefault();
     const cpfInput = document.getElementById('cpf');
     const submitButton = document.getElementById('btn-prosseguir');
     const errorMessage = document.getElementById('error-message');
 
-    // Limpa mensagens de erro anteriores e desabilita o botão
     errorMessage.textContent = '';
     submitButton.disabled = true;
     submitButton.textContent = 'Verificando...';
 
-    // 2. Cria os dados do formulário para enviar na requisição
     const formData = new FormData();
+    // Importante: Mesmo com a máscara, o PHP receberá o valor com pontos e traços.
+    // O seu script verificar_cpf.php deve estar preparado para limpar a string.
     formData.append('cpf', cpfInput.value);
 
-    // 3. Usa a API fetch para fazer a chamada assíncrona (AJAX) para o script PHP
     fetch('php/verificar_cpf.php', {
         method: 'POST',
         body: formData
     })
     .then(response => {
-        // Checa se a resposta da rede foi bem sucedida
-        if (!response.ok) {
-            throw new Error('Erro de rede ou servidor.');
-        }
-        return response.json(); // Converte a resposta em um objeto JSON
+        if (!response.ok) throw new Error('Erro de rede ou servidor.');
+        return response.json();
     })
     .then(data => {
-        // 4. Processa os dados recebidos do PHP
         if (data.status === 'exists' || data.status === 'not_exists') {
-            // Se o status for de sucesso, redireciona para a página indicada pelo PHP
             window.location.href = data.redirect;
         } else {
-            // Se o PHP retornar um erro, mostra a mensagem e reativa o botão
             errorMessage.textContent = data.message || 'Ocorreu um erro inesperado.';
             submitButton.disabled = false;
             submitButton.textContent = 'Prosseguir';
         }
     })
     .catch(error => {
-        // Captura erros de conexão ou falhas na requisição
         console.error('Erro na requisição fetch:', error);
         errorMessage.textContent = 'Não foi possível se comunicar com o servidor. Tente novamente.';
         submitButton.disabled = false;

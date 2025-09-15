@@ -19,9 +19,9 @@ include 'templates/header.php';
 <style>
     /* Variáveis de cor para consistência com a nova paleta */
     :root {
-        --cor-fundo: #f0f0f0;         /* Cinza bem claro */
-        --cor-dourado: #D4AF37;       /* Dourado */
-        --cor-branco: #FFFFFF;         /* Branco */
+        --cor-fundo: #f0f0f0;        /* Cinza bem claro */
+        --cor-dourado: #D4AF37;        /* Dourado */
+        --cor-branco: #FFFFFF;        /* Branco */
         font-family: 'Poppins', sans-serif;
     }
 
@@ -56,7 +56,7 @@ include 'templates/header.php';
 
 <div class="card-container">
     <h1>Login do Administrador</h1>
-    <p class="subtitle">Acesse com seu CPF/CNPJ e senha para gerenciar.</p>
+    <p class="subtitle">Acesse com seu CNPJ e senha para gerenciar.</p>
     
     <form action="php/processa_login.php" method="POST" style="width: 100%;">
         
@@ -65,8 +65,10 @@ include 'templates/header.php';
         <?php endif; ?>
 
         <div class="form-group">
-            <label for="cnpj">CPF/CNPJ</label>
-            <input type="text" id="cnpj" name="cnpj" required>
+            <label for="cnpj">CNPJ</label>
+            <input type="text" id="cnpj" name="cnpj" required 
+                   inputmode="numeric" pattern="[0-9]*"
+                   maxlength="18" placeholder="00.000.000/0000-00">
         </div>
         <div class="form-group">
             <label for="senha">Senha</label>
@@ -76,4 +78,25 @@ include 'templates/header.php';
     </form>
 </div>
 
+<script>
+document.getElementById('cnpj').addEventListener('input', function (e) {
+    let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é dígito
+    
+    // Aplica a máscara XX.XXX.XXX/XXXX-XX
+    if (value.length > 2) {
+        value = value.substring(0, 2) + '.' + value.substring(2);
+    }
+    if (value.length > 6) {
+        value = value.substring(0, 6) + '.' + value.substring(6);
+    }
+    if (value.length > 10) {
+        value = value.substring(0, 10) + '/' + value.substring(10);
+    }
+    if (value.length > 15) {
+        value = value.substring(0, 15) + '-' + value.substring(15, 17);
+    }
+
+    e.target.value = value;
+});
+</script>
 <?php include 'templates/footer.php'; ?>

@@ -96,7 +96,7 @@ include 'templates/header.php';
         <p class="modal-text">Digite a senha de liberação para continuar com o registro da compra.</p>
         <div class="form-group">
             <label for="senha_geral">Senha Geral</label>
-            <input type="password" id="senha_geral" name="senha_geral" placeholder="Digite a senha aqui">
+            <input type="password" id="senha_geral" name="senha_geral" placeholder="Digite a senha aqui" inputmode="numeric">
             <p id="modal-error-message" class="modal-error"></p>
         </div>
         <div class="modal-actions">
