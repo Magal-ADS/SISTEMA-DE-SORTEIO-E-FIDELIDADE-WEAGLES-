@@ -1,21 +1,20 @@
 {
-    "name": "Sistema de Sorteio e Fidelidade",
-    "short_name": "Sorteio App",
-    "start_url": "/index.php",
-    "display": "standalone",
-    "background_color": "#f0f0f0",
-    "theme_color": "#2c2c2c",
-    "orientation": "portrait-primary",
-    "icons": [
-        {
-            "src": "/favicon.png",
-            "type": "image/png",
-            "sizes": "192x192"
-        },
-        {
-            "src": "/favicon.png",
-            "type": "image/png",
-            "sizes": "512x512"
-        }
-    ]
+  "name": "Sistema de Sorteio e Fidelidade",
+  "short_name": "Sorteio App",
+  "start_url": "/index.php",
+  "display": "standalone",
+  "background_color": "#f0f0f0",
+  "theme_color": "#2c2c2c",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/favicon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
 }
