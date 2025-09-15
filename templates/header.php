@@ -13,6 +13,9 @@ if (session_status() === PHP_SESSION_NONE) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
     <title>Sistema de Sorteio</title>
     <link rel="icon" type="image/png" href="/favicon.png">
+    
+    <link rel="manifest" href="/manifest.json">
+    
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -64,7 +67,6 @@ if (!isset($show_header) || $show_header !== false):
                 <nav class="header-nav">
                     <a href="dashboard_vendedora.php">Início</a>
                     <a href="base_clientes_vendedor.php">Base de Clientes</a>
-                    <?php /* Link de 'Mensagens Programadas' removido */ ?>
                 </nav>
                 <div class="header-actions">
                     <a href="logout.php" class="btn-logout">Sair</a>
@@ -105,3 +107,17 @@ if (!isset($show_header) || $show_header !== false):
 <?php endif; ?>
 
 <main class="main-content">
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('PWA: Service Worker registrado com sucesso.');
+                })
+                .catch(error => {
+                    console.log('PWA: Falha ao registrar o Service Worker:', error);
+                });
+        });
+    }
+</script>
