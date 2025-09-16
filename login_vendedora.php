@@ -37,7 +37,7 @@ include 'templates/header.php';
             <div class="form-group">
                 <label for="cpf">CPF</label>
                 <input type="text" id="cpf" name="cpf" required 
-                       inputmode="numeric" pattern="[0-9]*" 
+                       inputmode="numeric" 
                        maxlength="14" placeholder="000.000.000-00">
             </div>
             <div class="form-group">
