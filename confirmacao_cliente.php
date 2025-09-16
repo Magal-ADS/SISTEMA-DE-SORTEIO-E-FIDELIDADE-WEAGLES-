@@ -1,5 +1,5 @@
 <?php
-// /confirmacao_cliente.php
+// /confirmacao_cliente.php (VERSÃO CORRIGIDA PARA POSTGRESQL)
 
 session_start();
 if (!isset($_SESSION['cliente_id'])) {
@@ -8,21 +8,39 @@ if (!isset($_SESSION['cliente_id'])) {
 }
 require_once 'php/db_config.php';
 
+// =================== INÍCIO DO BLOCO CORRIGIDO ===================
 $cliente_id = $_SESSION['cliente_id'];
 $cliente = null;
-$stmt = $link->prepare("SELECT nome_completo, cpf, whatsapp, data_nascimento FROM clientes WHERE id = ?");
-$stmt->bind_param("i", $cliente_id);
-$stmt->execute();
-$result = $stmt->get_result();
-if ($result->num_rows === 1) {
-    $cliente = $result->fetch_assoc();
+
+// 1. SQL com placeholder do PostgreSQL ($1)
+$sql = "SELECT nome_completo, cpf, whatsapp, data_nascimento FROM clientes WHERE id = $1";
+
+// 2. Prepara e executa a consulta com as funções pg_*
+$stmt = pg_prepare($link, "confirmacao_cliente_query", $sql);
+if ($stmt) {
+    $result = pg_execute($link, "confirmacao_cliente_query", [$cliente_id]);
+
+    // 3. Verifica se encontrou o cliente e busca os dados
+    if ($result && pg_num_rows($result) === 1) {
+        $cliente = pg_fetch_assoc($result);
+    } else {
+        // Se não encontrou, destrói a sessão e redireciona
+        session_destroy();
+        header('Location: cpf.php');
+        pg_close($link); // Fecha a conexão antes de sair
+        exit();
+    }
 } else {
+    // Se a preparação da query falhar, também redireciona
     session_destroy();
     header('Location: cpf.php');
+    pg_close($link); // Fecha a conexão antes de sair
     exit();
 }
-$stmt->close();
-$link->close();
+
+pg_close($link); // Fecha a conexão em caso de sucesso
+// ==================== FIM DO BLOCO CORRIGIDO =====================
+
 include 'templates/header.php';
 ?>
 
@@ -89,7 +107,6 @@ include 'templates/header.php';
     <button type="button" id="btn-abrir-popup" class="btn btn-verde">Confirmar e Registrar Compra</button>
 </div>
 
-
 <div class="modal-overlay" id="modal-senha">
     <div class="modal-box">
         <h2 class="modal-title">Senha do Vendedor</h2>
@@ -105,7 +122,6 @@ include 'templates/header.php';
         </div>
     </div>
 </div>
-
 
 <script>
     // Seu JavaScript funcional permanece 100% intacto

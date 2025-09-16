@@ -1,33 +1,38 @@
 <?php
-// /dashboard.php
+// /dashboard.php (VERSÃO CORRIGIDA PARA POSTGRESQL)
 
-// 1. BLOCO DE SEGURANÇA ATUALIZADO
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-// Verifica se o usuário está logado E se o cargo é de Administrador (1)
 if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     header("Location: login.php");
     exit();
 }
 
-// 2. LÓGICA PARA BUSCAR OS DADOS DO DASHBOARD
 require_once 'php/db_config.php';
 
+// =================== INÍCIO DO BLOCO CORRIGIDO ===================
+
 // --- Contar novos clientes (da loja toda) nos últimos 7 dias ---
-$sql_clientes = "SELECT COUNT(id) as total_novos_clientes FROM clientes WHERE data_cadastro >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-$resultado_clientes = $link->query($sql_clientes);
-$novos_clientes = $resultado_clientes->fetch_assoc()['total_novos_clientes'] ?? 0;
+// MUDANÇA: DATE_SUB(NOW(), INTERVAL 7 DAY) virou NOW() - interval '7 day'
+$sql_clientes = "SELECT COUNT(id) as total_novos_clientes FROM clientes WHERE data_cadastro >= NOW() - interval '7 day'";
+$resultado_clientes = pg_query($link, $sql_clientes);
+$novos_clientes = pg_fetch_assoc($resultado_clientes)['total_novos_clientes'] ?? 0;
 
 // --- Somar o valor de TODAS as vendas nos últimos 7 dias ---
-$sql_vendas = "SELECT SUM(valor) as total_vendas FROM compras WHERE data_compra >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-$resultado_vendas = $link->query($sql_vendas);
-$total_vendas = $resultado_vendas->fetch_assoc()['total_vendas'] ?? 0;
-// Formata o valor para a moeda brasileira
+// MUDANÇA: Mesma alteração para a função de data
+$sql_vendas = "SELECT SUM(valor) as total_vendas FROM compras WHERE data_compra >= NOW() - interval '7 day'";
+$resultado_vendas = pg_query($link, $sql_vendas);
+$total_vendas = pg_fetch_assoc($resultado_vendas)['total_vendas'] ?? 0;
+
+// Formata o valor para a moeda brasileira (lógica PHP, inalterada)
 $total_vendas_formatado = "R$ " . number_format($total_vendas, 2, ',', '.');
 
+// Fecha a conexão com o banco de dados
+pg_close($link);
 
-// 3. INCLUSÃO DO HEADER
+// ==================== FIM DO BLOCO CORRIGIDO =====================
+
 include 'templates/header.php'; 
 ?>
 

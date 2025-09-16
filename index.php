@@ -5,15 +5,18 @@
 require_once 'php/db_config.php';
 
 // 2. Busca o texto do card de informação no banco
-$result_config = $link->query("SELECT valor FROM configuracoes WHERE chave = 'tela_inicial_info_card_texto'");
+// ALTERADO AQUI: de $link->query() para pg_query($link, ...)
+$result_config = pg_query($link, "SELECT valor FROM configuracoes WHERE chave = 'tela_inicial_info_card_texto'");
 $info_card_text = "Participe e concorra a prêmios incríveis!"; // Texto padrão
 if ($result_config) {
-    $config_data = $result_config->fetch_assoc();
+    // ALTERADO AQUI: de $result_config->fetch_assoc() para pg_fetch_assoc($result_config)
+    $config_data = pg_fetch_assoc($result_config);
     if ($config_data) {
         $info_card_text = $config_data['valor'];
     }
 }
-$link->close();
+// ALTERADO AQUI: de $link->close() para pg_close($link)
+pg_close($link);
 
 include 'templates/header.php'; 
 ?>

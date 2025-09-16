@@ -1,7 +1,6 @@
 <?php
-// /editar_perfil_admin.php
+// /editar_perfil_admin.php (VERSÃO CORRIGIDA PARA POSTGRESQL)
 
-// 1. BLOCO DE SEGURANÇA
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -12,23 +11,36 @@ if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
 
 require_once 'php/db_config.php';
 
-// 2. BUSCA OS DADOS ATUAIS DO ADMIN LOGADO
+// =================== INÍCIO DO BLOCO CORRIGIDO ===================
 $admin_id = $_SESSION['usuario_id'];
 $admin = null;
 
-$stmt = $link->prepare("SELECT nome, cnpj, cpf FROM usuarios WHERE id = ?");
-$stmt->bind_param("i", $admin_id);
-$stmt->execute();
-$result = $stmt->get_result();
-if ($result->num_rows === 1) {
-    $admin = $result->fetch_assoc();
+// 1. SQL com placeholder do PostgreSQL
+$sql = "SELECT nome, cnpj, cpf FROM usuarios WHERE id = $1";
+
+// 2. Prepara e executa com as funções pg_*
+$stmt = pg_prepare($link, "get_admin_data_query", $sql);
+if ($stmt) {
+    $result = pg_execute($link, "get_admin_data_query", [$admin_id]);
+    
+    // 3. Verifica se o admin foi encontrado
+    if ($result && pg_num_rows($result) === 1) {
+        $admin = pg_fetch_assoc($result);
+    } else {
+        // Se não encontrar o admin, algo está errado. Força o logout.
+        header("Location: logout.php");
+        pg_close($link);
+        exit();
+    }
 } else {
-    // Se não encontrar o admin, algo está errado. Força o logout por segurança.
+    // Se a preparação falhar, também força o logout.
     header("Location: logout.php");
+    pg_close($link);
     exit();
 }
-$stmt->close();
-$link->close();
+
+pg_close($link);
+// ==================== FIM DO BLOCO CORRIGIDO =====================
 
 include 'templates/header.php';
 ?>
@@ -94,6 +106,7 @@ include 'templates/header.php';
 </div>
 
 <script>
+// O JavaScript não precisa de alteração, pois já interage com o script PHP de salvamento que convertemos.
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('form-edit-admin');
     const successMessage = document.getElementById('form-success-message');
@@ -118,9 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.status === 'success') {
                     successMessage.textContent = data.message;
-                    // Limpa a mensagem após 3 segundos
                     setTimeout(() => { successMessage.textContent = ''; }, 3000);
-                    // Limpa os campos de senha por segurança
                     document.getElementById('senha').value = '';
                     document.getElementById('senha_atual').value = '';
                 } else {

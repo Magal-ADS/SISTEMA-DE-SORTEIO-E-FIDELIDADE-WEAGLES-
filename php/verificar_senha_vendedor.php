@@ -1,5 +1,5 @@
 <?php
-// /php/verificar_senha_vendedor.php
+// /php/verificar_senha_vendedor.php (Versão PostgreSQL)
 
 session_start();
 require_once "db_config.php";
@@ -16,35 +16,42 @@ if (empty($vendedor_id) || empty($senha_vendedor)) {
     exit;
 }
 
-// Busca a senha do vendedor no banco
-$stmt = $link->prepare("SELECT senha FROM usuarios WHERE id = ? AND CARGO = 2");
-$stmt->bind_param("i", $vendedor_id);
-$stmt->execute();
-$result = $stmt->get_result();
+// 1. SQL com placeholder do PostgreSQL ($1)
+$sql = "SELECT senha FROM usuarios WHERE id = $1 AND CARGO = 2";
 
-if ($result->num_rows === 1) {
-    $vendedor = $result->fetch_assoc();
-    // Verifica se a senha fornecida bate com o hash salvo no banco
-    if (password_verify($senha_vendedor, $vendedor['senha'])) {
-        // SUCESSO! A senha está correta.
-        
-        // Criamos um "passe livre" na sessão para a próxima página
-        // Isso garante que só quem passou por aqui pode acessar a tela de compra
-        $_SESSION['vendedor_autenticado_id'] = $vendedor_id;
-        
-        $response['status'] = 'success';
-        unset($response['message']);
+// 2. Prepara e executa a consulta com as funções pg_*
+$stmt = pg_prepare($link, "verificar_senha_vendedor_query", $sql);
 
+if ($stmt) {
+    $result = pg_execute($link, "verificar_senha_vendedor_query", [$vendedor_id]);
+
+    // 3. Verifica o número de linhas com pg_num_rows
+    if ($result && pg_num_rows($result) === 1) {
+        $vendedor = pg_fetch_assoc($result);
+
+        // A função password_verify é do PHP, então não muda
+        if (password_verify($senha_vendedor, $vendedor['senha'])) {
+            // SUCESSO!
+            $_SESSION['vendedor_autenticado_id'] = $vendedor_id;
+            
+            $response['status'] = 'success';
+            unset($response['message']);
+
+        } else {
+            // Senha incorreta
+            $response['message'] = 'Senha do vendedor incorreta.';
+        }
     } else {
-        // Senha incorreta
-        $response['message'] = 'Senha do vendedor incorreta.';
+        // Vendedor não encontrado
+        $response['message'] = 'Vendedor não encontrado.';
     }
 } else {
-    $response['message'] = 'Vendedor não encontrado.';
+    $response['message'] = 'Erro na preparação da consulta.';
 }
 
-$stmt->close();
-$link->close();
+
+// 4. Fecha a conexão com pg_close
+pg_close($link);
 
 echo json_encode($response);
 ?>

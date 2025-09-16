@@ -8,13 +8,13 @@ header('Content-Type: application/json');
 $response = ['status' => 'error', 'message' => 'Ocorreu um erro desconhecido.'];
 
 // BLOCO DE SEGURANÇA CORRIGIDO
-if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
+if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] != 1) {
     $response['message'] = 'Acesso não autorizado.';
     echo json_encode($response);
     exit;
 }
 
-// O resto do seu código, 100% intacto
+// O resto da sua lógica de validação, 100% intacta
 $nome = trim($_POST['nome'] ?? '');
 $cpf_input = trim($_POST['cpf'] ?? '');
 $senha = trim($_POST['senha'] ?? '');
@@ -32,11 +32,20 @@ if (strlen($senha) < 6) {
 }
 $cpf_limpo = preg_replace('/[^0-9]/', '', $cpf_input);
 $hash_senha = password_hash($senha, PASSWORD_DEFAULT);
-$sql = "INSERT INTO usuarios (nome, cpf, senha, CARGO) VALUES (?, ?, ?, ?)";
-if ($stmt = $link->prepare($sql)) {
-    $stmt->bind_param("sssi", $nome, $cpf_limpo, $hash_senha, $cargo);
-    if ($stmt->execute()) {
-        $novo_id = $link->insert_id;
+
+// ALTERAÇÃO 1: SQL com placeholders do Postgres e 'RETURNING id' para pegar o novo ID
+$sql = "INSERT INTO usuarios (nome, cpf, senha, CARGO) VALUES ($1, $2, $3, $4) RETURNING id";
+
+// ALTERAÇÃO 2: Bloco de consulta para usar as funções do Postgres
+$stmt = pg_prepare($link, "add_funcionario_query", $sql);
+if ($stmt) {
+    $result = pg_execute($link, "add_funcionario_query", array($nome, $cpf_limpo, $hash_senha, $cargo));
+
+    if ($result && pg_num_rows($result) > 0) {
+        // Pega o ID que o "RETURNING id" devolveu
+        $row = pg_fetch_assoc($result);
+        $novo_id = $row['id'];
+        
         $response = [
             'status' => 'success',
             'message' => 'Funcionário adicionado com sucesso!',
@@ -48,16 +57,18 @@ if ($stmt = $link->prepare($sql)) {
             ]
         ];
     } else {
-        if ($link->errno == 1062) {
+        // ALTERAÇÃO 3: Tratamento de erro para chave duplicada no Postgres
+        // O código de erro padrão para "chave única duplicada" no Postgres é '23505'
+        if (pg_result_error_field($result, PGSQL_DIAG_SQLSTATE) == "23505") {
             $response['message'] = 'Este CPF já está cadastrado no sistema.';
         } else {
             $response['message'] = 'Erro ao salvar no banco de dados.';
         }
     }
-    $stmt->close();
 } else {
     $response['message'] = 'Erro na preparação da consulta.';
 }
-$link->close();
+
+pg_close($link);
 echo json_encode($response);
 ?>

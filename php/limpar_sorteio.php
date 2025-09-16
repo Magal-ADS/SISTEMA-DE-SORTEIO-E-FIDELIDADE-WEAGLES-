@@ -1,24 +1,30 @@
 <?php
-// /php/limpar_sorteio.php
+// /php/limpar_sorteio.php (Versão PostgreSQL)
 
 session_start();
-require_once "db_config.php";
+require_once "db_config.php"; // Conexão PostgreSQL
 header('Content-Type: application/json');
 
 // Segurança: Apenas o Admin pode limpar a urna.
-if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['usuario_cargo']) || $_SESSION['usuario_cargo'] != 1) {
+// AJUSTE DE CONSISTÊNCIA: Usando a variável de sessão 'cargo' padronizada.
+if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     echo json_encode(['status' => 'error', 'message' => 'Acesso não autorizado.']);
     exit;
 }
 
-// TRUNCATE é mais eficiente que DELETE para limpar uma tabela inteira e reseta o auto-incremento.
-$sql = "TRUNCATE TABLE sorteio";
+// O comando TRUNCATE é SQL padrão e funciona perfeitamente no PostgreSQL.
+// Adicionamos "RESTART IDENTITY" que é a forma explícita no Postgres para reiniciar o contador do ID.
+$sql = "TRUNCATE TABLE sorteio RESTART IDENTITY";
 
-if ($link->query($sql)) {
+// Executa a query diretamente com pg_query, que é o equivalente ao $link->query()
+$result = pg_query($link, $sql);
+
+if ($result) {
     echo json_encode(['status' => 'success', 'message' => 'A urna de sorteio foi limpa com sucesso!']);
 } else {
     echo json_encode(['status' => 'error', 'message' => 'Erro ao tentar limpar a urna.']);
 }
 
-$link->close();
+// Fecha a conexão com o PostgreSQL
+pg_close($link);
 ?>

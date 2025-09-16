@@ -1,5 +1,5 @@
 <?php
-// /php/remover_funcionario.php
+// /php/remover_funcionario.php (Versão PostgreSQL)
 
 session_start();
 require_once "db_config.php";
@@ -7,45 +7,61 @@ header('Content-Type: application/json');
 
 $response = ['status' => 'error', 'message' => 'Ocorreu um erro.'];
 
-// BLOCO DE SEGURANÇA CORRIGIDO
-if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
+// Bloco de segurança (inalterado)
+if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['cargo']) || !isset($_SESSION['cargo'] != 1)) {
     $response['message'] = 'Acesso não autorizado.';
     echo json_encode($response);
     exit;
 }
 
-// O resto do seu código, 100% intacto
+// Coleta de dados (inalterada)
 $admin_id_logado = $_SESSION['usuario_id'];
 $funcionario_id_para_remover = $_POST['id'] ?? 0;
 $senha_admin_digitada = $_POST['senha_admin'] ?? '';
+
 if (empty($funcionario_id_para_remover) || empty($senha_admin_digitada)) {
     $response['message'] = 'ID do funcionário e senha do admin são obrigatórios.';
     echo json_encode($response);
     exit;
 }
-$stmt_admin = $link->prepare("SELECT senha FROM usuarios WHERE id = ?");
-$stmt_admin->bind_param("i", $admin_id_logado);
-$stmt_admin->execute();
-$result_admin = $stmt_admin->get_result();
-$admin_data = $result_admin->fetch_assoc();
-$stmt_admin->close();
+
+// --- ETAPA 1: Verificar a senha do administrador logado ---
+$sql_admin = "SELECT senha FROM usuarios WHERE id = $1";
+$stmt_admin = pg_prepare($link, "get_admin_pass_query", $sql_admin);
+
+if (!$stmt_admin) {
+    $response['message'] = 'Erro crítico ao preparar a verificação de segurança.';
+    echo json_encode($response);
+    exit;
+}
+
+$result_admin = pg_execute($link, "get_admin_pass_query", [$admin_id_logado]);
+$admin_data = pg_fetch_assoc($result_admin);
+
+// A função password_verify é do PHP, então não muda.
 if (!$admin_data || !password_verify($senha_admin_digitada, $admin_data['senha'])) {
     $response['message'] = 'Senha do administrador incorreta.';
     echo json_encode($response);
     exit;
 }
-$sql = "DELETE FROM usuarios WHERE id = ?";
-if ($stmt = $link->prepare($sql)) {
-    $stmt->bind_param("i", $funcionario_id_para_remover);
-    if ($stmt->execute() && $stmt->affected_rows > 0) {
+
+// --- ETAPA 2: Se a senha estiver correta, remover o funcionário ---
+$sql_delete = "DELETE FROM usuarios WHERE id = $1";
+$stmt_delete = pg_prepare($link, "remove_funcionario_query", $sql_delete);
+
+if ($stmt_delete) {
+    $result_delete = pg_execute($link, "remove_funcionario_query", [$funcionario_id_para_remover]);
+
+    // MUDANÇA PRINCIPAL: Usamos pg_affected_rows() para checar se a deleção teve efeito.
+    if ($result_delete && pg_affected_rows($result_delete) > 0) {
         $response = ['status' => 'success', 'message' => 'Funcionário removido com sucesso!'];
     } else {
         $response['message'] = 'Nenhum funcionário encontrado com este ID ou erro ao remover.';
     }
-    $stmt->close();
 } else {
      $response['message'] = 'Erro na preparação da consulta de remoção.';
 }
-$link->close();
+
+pg_close($link);
 echo json_encode($response);
 ?>

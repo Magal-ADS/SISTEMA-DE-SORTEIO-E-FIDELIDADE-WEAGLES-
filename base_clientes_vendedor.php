@@ -1,11 +1,9 @@
 <?php
-// /base_clientes_vendedor.php
+// /base_clientes_vendedor.php (VERSÃO CORRIGIDA PARA POSTGRESQL)
 
-// 1. BLOCO DE SEGURANÇA (AJUSTADO PARA VENDEDORA)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-// Verifica se o usuário está logado E se o cargo é de Vendedora (2)
 if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 2) {
     header("Location: login_vendedora.php");
     exit();
@@ -14,11 +12,12 @@ if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 2) {
 include 'templates/header.php';
 require_once 'php/db_config.php';
 
-// --- BUSCA AS CONFIGURAÇÕES DOS FILTROS NO BANCO ---
+// --- BUSCA AS CONFIGURAÇÕES (Convertido para PG) ---
 $configs = [];
-$result_configs = $link->query("SELECT chave, valor FROM configuracoes WHERE chave LIKE 'filtro_%'");
+// Usando pg_query e pg_fetch_assoc
+$result_configs = pg_query($link, "SELECT chave, valor FROM configuracoes WHERE chave LIKE 'filtro_%'");
 if ($result_configs) {
-    while($row = $result_configs->fetch_assoc()){
+    while($row = pg_fetch_assoc($result_configs)){
         $configs[$row['chave']] = $row['valor'];
     }
 }
@@ -26,61 +25,77 @@ $inativos_meses = $configs['filtro_inativos_meses'] ?? 6;
 $gastos_altos_valor = $configs['filtro_gastos_altos_valor'] ?? 1000;
 $gastos_altos_dias = $configs['filtro_gastos_altos_dias'] ?? 90;
 
-// LÓGICA DOS FILTROS (REESCRITA PARA SER MAIS PRECISA)
+// LÓGICA DOS FILTROS (Convertido para PG)
 $filtro_ativo = $_GET['filtro'] ?? 'todos';
 $clientes = [];
 $vendedora_id = $_SESSION['usuario_id'];
+$params = [];
+$query_name = '';
+$sql = '';
 
 switch ($filtro_ativo) {
     case 'aniversariantes_dia':
+        // MUDANÇA: Funções de data do MySQL trocadas por EXTRACT do PostgreSQL
         $sql = "SELECT DISTINCT c.nome_completo, c.whatsapp, c.data_nascimento, c.data_cadastro 
                 FROM clientes c JOIN compras co ON c.id = co.cliente_id
-                WHERE co.vendedor_id = ? AND DAY(c.data_nascimento) = DAY(CURDATE()) AND MONTH(c.data_nascimento) = MONTH(CURDATE())";
-        $stmt = $link->prepare($sql);
-        $stmt->bind_param("i", $vendedora_id);
+                WHERE co.vendedor_id = $1 
+                AND EXTRACT(DAY FROM c.data_nascimento) = EXTRACT(DAY FROM CURRENT_DATE) 
+                AND EXTRACT(MONTH FROM c.data_nascimento) = EXTRACT(MONTH FROM CURRENT_DATE)";
+        $query_name = 'filtro_aniversariantes';
+        $params = [$vendedora_id];
         break;
 
     case 'inativos':
+        // MUDANÇA: DATE_SUB trocado pelo operador de intervalo do PostgreSQL
         $sql = "SELECT c.nome_completo, c.whatsapp, c.data_nascimento, c.data_cadastro
                 FROM clientes c
                 JOIN (
                     SELECT cliente_id, MAX(data_compra) as ultima_compra_com_vendedor
                     FROM compras
-                    WHERE vendedor_id = ?
+                    WHERE vendedor_id = $1
                     GROUP BY cliente_id
                 ) AS ultimas_compras ON c.id = ultimas_compras.cliente_id
-                WHERE ultimas_compras.ultima_compra_com_vendedor < DATE_SUB(CURDATE(), INTERVAL ? MONTH)
+                WHERE ultimas_compras.ultima_compra_com_vendedor < (CURRENT_DATE - ($2 || ' months')::interval)
                 ORDER BY c.nome_completo ASC";
-        $stmt = $link->prepare($sql);
-        $stmt->bind_param("ii", $vendedora_id, $inativos_meses);
+        $query_name = 'filtro_inativos';
+        $params = [$vendedora_id, $inativos_meses];
         break;
 
     case 'gastos_altos':
+        // MUDANÇA: DATE_SUB trocado pelo operador de intervalo do PostgreSQL
         $sql = "SELECT c.nome_completo, c.whatsapp, c.data_nascimento, c.data_cadastro, SUM(co.valor) AS total_gasto
                 FROM clientes c JOIN compras co ON c.id = co.cliente_id
-                WHERE co.vendedor_id = ? AND co.data_compra >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                WHERE co.vendedor_id = $1 AND co.data_compra >= (CURRENT_DATE - ($2 || ' days')::interval)
                 GROUP BY c.id
-                HAVING SUM(co.valor) >= ?
+                HAVING SUM(co.valor) >= $3
                 ORDER BY total_gasto DESC";
-        $stmt = $link->prepare($sql);
-        $stmt->bind_param("iid", $vendedora_id, $gastos_altos_dias, $gastos_altos_valor);
+        $query_name = 'filtro_gastos_altos';
+        $params = [$vendedora_id, $gastos_altos_dias, $gastos_altos_valor];
         break;
 
     case 'todos':
     default:
         $sql = "SELECT DISTINCT c.nome_completo, c.whatsapp, c.data_nascimento, c.data_cadastro 
                 FROM clientes c JOIN compras co ON c.id = co.cliente_id
-                WHERE co.vendedor_id = ? 
+                WHERE co.vendedor_id = $1 
                 ORDER BY c.data_cadastro DESC";
-        $stmt = $link->prepare($sql);
-        $stmt->bind_param("i", $vendedora_id);
+        $query_name = 'filtro_todos';
+        $params = [$vendedora_id];
         break;
 }
 
-$stmt->execute();
-$result = $stmt->get_result();
-if ($result) { $clientes = $result->fetch_all(MYSQLI_ASSOC); }
-$stmt->close(); $link->close();
+// Execução unificada da consulta
+$stmt = pg_prepare($link, $query_name, $sql);
+if ($stmt) {
+    $result = pg_execute($link, $query_name, $params);
+    if ($result) {
+        // MUDANÇA: fetch_all trocado por um loop com pg_fetch_assoc
+        while ($row = pg_fetch_assoc($result)) {
+            $clientes[] = $row;
+        }
+    }
+}
+pg_close($link);
 ?>
 
 <title>Minha Base de Clientes</title>

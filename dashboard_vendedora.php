@@ -1,11 +1,10 @@
 <?php
-// /dashboard_vendedora.php
+// /dashboard_vendedora.php (VERSÃO CORRIGIDA PARA POSTGRESQL)
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. CONTROLE DE ACESSO: Garante que apenas vendedoras (CARGO = 2) acessem esta página.
 if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['cargo']) || $_SESSION['cargo'] != 2) {
     session_unset();
     session_destroy();
@@ -15,29 +14,27 @@ if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['cargo']) || $_SESSION['
 
 require_once 'php/db_config.php';
 
-// 2. BUSCA DE DADOS PERSONALIZADOS PARA A VENDEDORA LOGADA
-$vendedora_id = $_SESSION['usuario_id']; // Pega o ID da vendedora da sessão
+// =================== INÍCIO DO BLOCO CORRIGIDO ===================
+$vendedora_id = $_SESSION['usuario_id'];
 
 // --- Contar CLIENTES ÚNICOS que compraram com a vendedora nos últimos 7 dias ---
-$sql_clientes = "SELECT COUNT(DISTINCT cliente_id) as total_clientes FROM compras WHERE vendedor_id = ? AND data_compra >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-$stmt_clientes = $link->prepare($sql_clientes);
-$stmt_clientes->bind_param("i", $vendedora_id);
-$stmt_clientes->execute();
-$resultado_clientes = $stmt_clientes->get_result();
-$clientes_atendidos = $resultado_clientes->fetch_assoc()['total_clientes'] ?? 0;
-$stmt_clientes->close();
+// MUDANÇA: DATE_SUB trocado por sintaxe de intervalo e consulta convertida para pg_*
+$sql_clientes = "SELECT COUNT(DISTINCT cliente_id) as total_clientes FROM compras WHERE vendedor_id = $1 AND data_compra >= NOW() - interval '7 day'";
+$stmt_clientes = pg_prepare($link, "vendedora_dashboard_clientes", $sql_clientes);
+$resultado_clientes = pg_execute($link, "vendedora_dashboard_clientes", [$vendedora_id]);
+$clientes_atendidos = pg_fetch_assoc($resultado_clientes)['total_clientes'] ?? 0;
 
 // --- Somar o valor das vendas da vendedora nos últimos 7 dias ---
-$sql_vendas_valor = "SELECT SUM(valor) as total_valor FROM compras WHERE vendedor_id = ? AND data_compra >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
-$stmt_vendas_valor = $link->prepare($sql_vendas_valor);
-$stmt_vendas_valor->bind_param("i", $vendedora_id);
-$stmt_vendas_valor->execute();
-$resultado_vendas_valor = $stmt_vendas_valor->get_result();
-$total_vendas_valor = $resultado_vendas_valor->fetch_assoc()['total_valor'] ?? 0;
+// MUDANÇA: Mesma alteração na função de data e conversão da consulta
+$sql_vendas_valor = "SELECT SUM(valor) as total_valor FROM compras WHERE vendedor_id = $1 AND data_compra >= NOW() - interval '7 day'";
+$stmt_vendas_valor = pg_prepare($link, "vendedora_dashboard_vendas", $sql_vendas_valor);
+$resultado_vendas_valor = pg_execute($link, "vendedora_dashboard_vendas", [$vendedora_id]);
+$total_vendas_valor = pg_fetch_assoc($resultado_vendas_valor)['total_valor'] ?? 0;
 $total_vendas_formatado = "R$ " . number_format($total_vendas_valor, 2, ',', '.');
-$stmt_vendas_valor->close();
 
-$link->close();
+pg_close($link);
+// ==================== FIM DO BLOCO CORRIGIDO =====================
+
 include 'templates/header.php'; 
 ?>
 

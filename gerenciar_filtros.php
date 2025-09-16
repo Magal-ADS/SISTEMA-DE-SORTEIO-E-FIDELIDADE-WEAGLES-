@@ -1,25 +1,32 @@
 <?php
-// /gerenciar_filtros.php
+// /gerenciar_filtros.php (VERSÃO CORRIGIDA PARA POSTGRESQL)
 
-// BLOCO DE SEGURANÇA ATUALIZADO
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-// Segurança: Apenas o Admin (CARGO = 1) pode acessar.
 if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     header("Location: login.php");
     exit();
 }
 
 require_once 'php/db_config.php';
+
+// =================== INÍCIO DO BLOCO CORRIGIDO ===================
 $configuracoes = [];
-$result = $link->query("SELECT chave, valor, descricao, tipo_input FROM configuracoes WHERE chave LIKE 'filtro_%'");
+// A consulta SQL com LIKE é compatível com PostgreSQL
+$sql = "SELECT chave, valor, descricao, tipo_input FROM configuracoes WHERE chave LIKE 'filtro_%'";
+
+// A execução da consulta foi trocada para pg_query e pg_fetch_assoc
+$result = pg_query($link, $sql);
 if ($result) {
-    while ($row = $result->fetch_assoc()) {
+    while ($row = pg_fetch_assoc($result)) {
         $configuracoes[$row['chave']] = $row;
     }
 }
-$link->close();
+
+pg_close($link);
+// ==================== FIM DO BLOCO CORRIGIDO =====================
+
 include 'templates/header.php';
 ?>
 
@@ -71,19 +78,20 @@ include 'templates/header.php';
 </div>
 
 <script>
+// O JavaScript não precisa de alteração
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('form-filtros');
     const successMessage = document.getElementById('form-success-message');
-    let isSubmitting = false; // Trava de segurança para evitar envios duplos
+    let isSubmitting = false; 
 
     if (form) {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
             if (isSubmitting) {
-                return; // Se já estiver enviando, ignora o clique
+                return; 
             }
-            isSubmitting = true; // Ativa a trava
+            isSubmitting = true; 
 
             const button = document.getElementById('btn-salvar-filtros');
             button.disabled = true;
@@ -110,10 +118,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Não foi possível se conectar ao servidor.');
             })
             .finally(() => {
-                // Sempre executa, dando certo ou errado
                 button.disabled = false;
                 button.textContent = 'Salvar Alterações';
-                isSubmitting = false; // Libera a trava para um novo envio
+                isSubmitting = false;
             });
         });
     }
@@ -121,6 +128,5 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <?php
-// Inclui o rodapé
 include 'templates/footer.php';
 ?>

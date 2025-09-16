@@ -30,34 +30,34 @@ if (!$date_obj || $date_obj->format('d/m/Y') !== $nascimento_br) {
 $nascimento_para_banco = $date_obj->format('Y-m-d');
 
 
-$sql = "INSERT INTO clientes (cpf, nome_completo, whatsapp, data_nascimento, usuario_id) VALUES (?, ?, ?, ?, ?)";
+// ALTERADO: SQL com placeholders do Postgres e 'RETURNING id'
+$sql = "INSERT INTO clientes (cpf, nome_completo, whatsapp, data_nascimento, usuario_id) VALUES ($1, $2, $3, $4, $5) RETURNING id";
 
-if ($stmt = $link->prepare($sql)) {
-    $stmt->bind_param("ssssi", $cpf, $nome, $whatsapp, $nascimento_para_banco, $usuario_id);
+// ALTERADO: Bloco de consulta para usar as funções do Postgres
+$stmt = pg_prepare($link, "cadastrar_cliente_query", $sql);
+if ($stmt) {
+    $result = pg_execute($link, "cadastrar_cliente_query", array($cpf, $nome, $whatsapp, $nascimento_para_banco, $usuario_id));
     
-    if ($stmt->execute()) {
+    if ($result && pg_num_rows($result) > 0) {
         
-        // ==========================================================
-        //  AQUI ESTÁ A CORREÇÃO MÁGICA
-        //  Após cadastrar, salvamos os dados do novo cliente na sessão
-        //  para que a próxima página saiba quem ele é.
-        // ==========================================================
-        $_SESSION['cliente_id'] = $link->insert_id; // Pega o ID do cliente que acabou de ser criado
-        $_SESSION['cliente_nome'] = $nome;          // Salva o nome dele na sessão
+        // Pega o ID do cliente que o "RETURNING id" devolveu
+        $row = pg_fetch_assoc($result);
+        $_SESSION['cliente_id'] = $row['id'];
+        $_SESSION['cliente_nome'] = $nome;
 
         $response = ['status' => 'success', 'message' => 'Cliente cadastrado com sucesso!'];
     } else {
-        if ($link->errno == 1062) {
+        // ALTERADO: Tratamento de erro para chave duplicada no Postgres
+        if (pg_result_error_field($result, PGSQL_DIAG_SQLSTATE) == "23505") {
              $response['message'] = 'Este CPF já está cadastrado.';
         } else {
              $response['message'] = 'Erro ao cadastrar o cliente.';
         }
     }
-    $stmt->close();
 } else {
     $response['message'] = 'Erro na preparação da consulta.';
 }
 
-$link->close();
+pg_close($link);
 echo json_encode($response);
 ?>

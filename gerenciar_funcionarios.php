@@ -1,11 +1,9 @@
 <?php
-// /gerenciar_funcionarios.php
+// /gerenciar_funcionarios.php (VERSÃO CORRIGIDA PARA POSTGRESQL)
 
-// BLOCO DE SEGURANÇA ATUALIZADO
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-// Segurança: Apenas o Admin (CARGO = 1) pode acessar.
 if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     header("Location: login.php");
     exit();
@@ -13,18 +11,26 @@ if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
 
 require_once 'php/db_config.php';
 
-// Busca todos os usuários que NÃO são o admin principal.
+// =================== INÍCIO DO BLOCO CORRIGIDO ===================
 $funcionarios = [];
 $admin_id = $_SESSION['usuario_id'];
-$stmt = $link->prepare("SELECT id, nome, cpf, CARGO FROM usuarios WHERE CARGO != 1 AND id != ?");
-$stmt->bind_param("i", $admin_id);
-$stmt->execute();
-$result = $stmt->get_result();
-if ($result) {
-    $funcionarios = $result->fetch_all(MYSQLI_ASSOC);
+
+// 1. SQL com placeholder do PostgreSQL ($1)
+$sql = "SELECT id, nome, cpf, CARGO FROM usuarios WHERE CARGO != 1 AND id != $1";
+
+// 2. Prepara e executa a consulta com as funções pg_*
+$stmt = pg_prepare($link, "listar_funcionarios_query", $sql);
+if ($stmt) {
+    $result = pg_execute($link, "listar_funcionarios_query", [$admin_id]);
+    if ($result) {
+        // 3. MUDANÇA: fetch_all() foi substituído por um loop com pg_fetch_assoc
+        while ($row = pg_fetch_assoc($result)) {
+            $funcionarios[] = $row;
+        }
+    }
 }
-$stmt->close();
-$link->close();
+pg_close($link);
+// ==================== FIM DO BLOCO CORRIGIDO =====================
 
 include 'templates/header.php';
 ?>

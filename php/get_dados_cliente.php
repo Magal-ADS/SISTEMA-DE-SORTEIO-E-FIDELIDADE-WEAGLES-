@@ -17,30 +17,29 @@ if (empty($cpf)) {
     exit;
 }
 
-// Busca dados do cliente, garantindo que ele pertence ao usuário (loja) correto
-$sql_cliente = "SELECT id, nome_completo FROM clientes WHERE cpf = ? AND usuario_id = ?";
-$stmt = $link->prepare($sql_cliente);
-$stmt->bind_param("si", $cpf, $usuario_id);
-$stmt->execute();
-$result_cliente = $stmt->get_result()->fetch_assoc();
-$stmt->close();
+// ALTERADO: Busca dados do cliente usando funções do Postgres
+$sql_cliente = "SELECT id, nome_completo FROM clientes WHERE cpf = $1 AND usuario_id = $2";
+$result_cliente = null; // Inicia como nulo
 
-if (!$result_cliente) {
-    // Se não encontrou o cliente para este usuário, pode ser que ele ainda não exista
-    // Então não retornamos um erro, apenas não teremos o nome do cliente
-    // A busca de vendedores continua
+$stmt_cliente = pg_prepare($link, "get_cliente_query", $sql_cliente);
+if ($stmt_cliente) {
+    $result = pg_execute($link, "get_cliente_query", array($cpf, $usuario_id));
+    if ($result && pg_num_rows($result) > 0) {
+        $result_cliente = pg_fetch_assoc($result);
+    }
 }
 
-// Busca lista de vendedores APENAS do usuário (loja) correto
-$sql_vendedores = "SELECT nome FROM vendedores WHERE usuario_id = ? ORDER BY nome ASC";
-$stmt_vendedores = $link->prepare($sql_vendedores);
-$stmt_vendedores->bind_param("i", $usuario_id);
-$stmt_vendedores->execute();
-$result_vendedores = $stmt_vendedores->get_result();
+// ALTERADO: Busca lista de vendedores na tabela 'usuarios' com CARGO = 2
+// Como não há parâmetros, uma consulta direta é mais simples
+$sql_vendedores = "SELECT id, nome FROM usuarios WHERE CARGO = 2 ORDER BY nome ASC";
+$result_vendedores = pg_query($link, $sql_vendedores);
 
 $vendedores = [];
-while($row = $result_vendedores->fetch_assoc()){
-    $vendedores[] = $row;
+if ($result_vendedores) {
+    // O loop para buscar os dados continua com a função do Postgres
+    while($row = pg_fetch_assoc($result_vendedores)){
+        $vendedores[] = $row;
+    }
 }
 
 echo json_encode([
@@ -49,5 +48,5 @@ echo json_encode([
     'vendedores' => $vendedores
 ]);
 
-$link->close();
+pg_close($link);
 ?>

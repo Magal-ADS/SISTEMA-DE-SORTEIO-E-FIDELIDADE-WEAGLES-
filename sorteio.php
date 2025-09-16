@@ -1,11 +1,9 @@
 <?php
-// /sorteio.php
+// /sorteio.php (VERSÃO CORRIGIDA PARA POSTGRESQL)
 
-// 1. BLOCO DE SEGURANÇA ATUALIZADO
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-// Verifica se o usuário está logado E se o cargo é de Administrador (1)
 if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     header("Location: login.php");
     exit();
@@ -13,19 +11,26 @@ if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
 
 require_once 'php/db_config.php';
 
-// 2. BUSCA DO TOTAL DE CUPONS (VERSÃO MAIS SEGURA)
+// =================== INÍCIO DO BLOCO CORRIGIDO ===================
 $total_cupons = 0;
 $admin_id = $_SESSION['usuario_id'];
-$sql_cupons = "SELECT COUNT(*) as total FROM sorteio WHERE usuario_id = ?";
-if ($stmt_cupons = $link->prepare($sql_cupons)) {
-    $stmt_cupons->bind_param("i", $admin_id);
-    $stmt_cupons->execute();
-    $result = $stmt_cupons->get_result();
-    if ($result) {
-        $total_cupons = $result->fetch_assoc()['total'];
+
+// 1. SQL com placeholder do PostgreSQL ($1)
+$sql_cupons = "SELECT COUNT(*) as total FROM sorteio WHERE usuario_id = $1";
+
+// 2. Prepara e executa a consulta com as funções pg_*
+$stmt_cupons = pg_prepare($link, "contar_cupons_query", $sql_cupons);
+
+if ($stmt_cupons) {
+    $result = pg_execute($link, "contar_cupons_query", [$admin_id]);
+    
+    // 3. Pega o resultado da contagem
+    if ($result && pg_num_rows($result) > 0) {
+        $row = pg_fetch_assoc($result);
+        $total_cupons = $row['total'];
     }
-    $stmt_cupons->close();
 }
+// ==================== FIM DO BLOCO CORRIGIDO =====================
 
 include 'templates/header.php';
 ?>

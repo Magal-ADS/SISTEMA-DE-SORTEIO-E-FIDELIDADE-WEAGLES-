@@ -1,7 +1,6 @@
 <?php
-// /gerenciar_tela_inicial.php
+// /gerenciar_tela_inicial.php (VERSÃO CORRIGIDA PARA POSTGRESQL)
 
-// BLOCO DE SEGURANÇA ATUALIZADO
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -12,9 +11,17 @@ if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
 
 require_once 'php/db_config.php';
 
-$config = $link->query("SELECT * FROM configuracoes WHERE chave = 'tela_inicial_info_card_texto'")->fetch_assoc();
+// =================== INÍCIO DO BLOCO CORRIGIDO ===================
+// A consulta SQL é compatível
+$sql = "SELECT * FROM configuracoes WHERE chave = 'tela_inicial_info_card_texto'";
 
-$link->close();
+// A execução foi trocada para as funções pg_*
+$result = pg_query($link, $sql);
+$config = pg_fetch_assoc($result);
+
+pg_close($link);
+// ==================== FIM DO BLOCO CORRIGIDO =====================
+
 include 'templates/header.php';
 ?>
 
@@ -75,6 +82,7 @@ include 'templates/header.php';
 </div>
 
 <script>
+// O JavaScript não precisa de alteração
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('form-tela-inicial');
     const successMessage = document.getElementById('form-success-message');

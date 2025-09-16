@@ -67,7 +67,7 @@ include 'templates/header.php';
         <div class="form-group">
             <label for="cnpj">CNPJ</label>
             <input type="text" id="cnpj" name="cnpj" required 
-                   inputmode="numeric" pattern="[0-9]*"
+                   inputmode="numeric"
                    maxlength="18" placeholder="00.000.000/0000-00">
         </div>
         <div class="form-group">
