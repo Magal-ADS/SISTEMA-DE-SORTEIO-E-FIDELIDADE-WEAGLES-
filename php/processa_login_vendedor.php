@@ -1,4 +1,6 @@
 <?php
+// /php/processa_login_vendedor.php (VERSÃO FINAL E CORRIGIDA)
+
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 require_once "db_config.php";
 
@@ -11,11 +13,10 @@ if (empty($cpf) || empty($senha)) {
     exit;
 }
 
-// ALTERADO: Placeholder '?' para '$1'
-// Busca um usuário com o CPF informado E que tenha o CARGO = 2 (Vendedor)
-$sql = "SELECT id, nome, senha, CARGO FROM usuarios WHERE cpf = $1 AND CARGO = 2";
+// CORREÇÃO 1: Nome da coluna 'CARGO' para 'cargo' (minúsculo) para ser compatível com o PostgreSQL.
+$sql = "SELECT id, nome, senha, cargo FROM usuarios WHERE cpf = $1 AND cargo = 2";
 
-// ALTERADO: Bloco de consulta para usar as funções do Postgres
+// Usando um nome de statement único para evitar conflitos
 $stmt = pg_prepare($link, "vendedor_login_query", $sql);
 
 if ($stmt) {
@@ -24,13 +25,15 @@ if ($stmt) {
     if ($result && pg_num_rows($result) === 1) {
         $usuario = pg_fetch_assoc($result);
         if (password_verify($senha, $usuario['senha'])) {
-            session_regenerate_id(true);
+            // CORREÇÃO 2: A linha abaixo foi desativada para resolver o problema de perda de sessão.
+            // session_regenerate_id(true);
+            
             $_SESSION['usuario_id'] = $usuario['id'];
             $_SESSION['usuario_nome'] = $usuario['nome'];
-            // Ajuste para minúsculas, pois o Postgres costuma retornar assim
-            $_SESSION['usuario_cargo'] = $usuario['cargo']; 
             
-            // Redireciona para o dashboard da vendedora
+            // CORREÇÃO 3: Padronizando a variável de sessão para 'cargo', conforme usado no dashboard_vendedora.php
+            $_SESSION['cargo'] = $usuario['cargo']; 
+            
             header("Location: ../dashboard_vendedora.php"); 
             exit;
         }

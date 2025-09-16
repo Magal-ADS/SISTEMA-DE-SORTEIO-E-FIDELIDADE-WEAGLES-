@@ -1,5 +1,5 @@
 <?php
-// /gerenciar_funcionarios.php (VERSÃO CORRIGIDA PARA POSTGRESQL)
+// /gerenciar_funcionarios.php (VERSÃO FINAL E CORRIGIDA)
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -11,27 +11,22 @@ if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
 
 require_once 'php/db_config.php';
 
-// =================== INÍCIO DO BLOCO CORRIGIDO ===================
 $funcionarios = [];
 $admin_id = $_SESSION['usuario_id'];
 
-// 1. SQL com placeholder do PostgreSQL ($1)
-$sql = "SELECT id, nome, cpf, CARGO FROM usuarios WHERE CARGO != 1 AND id != $1";
+// CORREÇÃO 1: 'CARGO' para 'cargo' (minúsculo) na consulta SQL
+$sql = "SELECT id, nome, cpf, cargo FROM usuarios WHERE cargo != 1 AND id != $1";
 
-// 2. Prepara e executa a consulta com as funções pg_*
 $stmt = pg_prepare($link, "listar_funcionarios_query", $sql);
 if ($stmt) {
     $result = pg_execute($link, "listar_funcionarios_query", [$admin_id]);
     if ($result) {
-        // 3. MUDANÇA: fetch_all() foi substituído por um loop com pg_fetch_assoc
         while ($row = pg_fetch_assoc($result)) {
             $funcionarios[] = $row;
         }
     }
 }
 pg_close($link);
-// ==================== FIM DO BLOCO CORRIGIDO =====================
-
 include 'templates/header.php';
 ?>
 
@@ -41,18 +36,14 @@ include 'templates/header.php';
     /* Estilos para o tema escuro */
     .page-header h1 { color: var(--cor-dourado) !important; }
     .page-header p { color: var(--cor-branco) !important; opacity: 0.8; }
-
-    /* Adapta a tabela (efeito vidro) e textos */
     .table-wrapper { background-color: rgba(44, 44, 44, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
     .data-table th, .data-table td { color: var(--cor-branco) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
     .data-table th { opacity: 0.9; }
     .data-table td { opacity: 0.7; }
-
-    /* Adapta os modais (pop-ups) */
     .modal-box { background-color: #2c2c2c; }
     .modal-title, .modal-text, .form-group label, .modal-text strong { color: var(--cor-branco); }
     .modal-box .form-group input, .modal-box .form-group select { background-color: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.2); color: var(--cor-branco); }
-    .modal-error { color: #ff8a8a; } /* Um vermelho mais claro para melhor leitura no escuro */
+    .modal-error { color: #ff8a8a; }
     .modal-actions .btn-light { background-color: #444; color: var(--cor-branco); border: 1px solid #555; }
 </style>
 
@@ -85,7 +76,7 @@ include 'templates/header.php';
                         <tr data-id-linha="<?php echo $func['id']; ?>">
                             <td><?php echo htmlspecialchars($func['nome']); ?></td>
                             <td><?php echo htmlspecialchars($func['cpf']); ?></td>
-                            <td><?php echo ($func['CARGO'] == 2) ? 'Vendedor' : 'Outro'; ?></td>
+                            <td><?php echo ($func['cargo'] == 2) ? 'Vendedor' : 'Outro'; ?></td>
                             <td class="actions-cell">
                                 <button class="btn-action edit" data-id="<?php echo $func['id']; ?>">Editar</button>
                                 <button class="btn-action delete" data-id="<?php echo $func['id']; ?>" data-nome="<?php echo htmlspecialchars($func['nome']); ?>">Remover</button>
@@ -267,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('edit-id').value = id;
                     document.getElementById('edit-nome').value = func.nome;
                     document.getElementById('edit-cpf').value = func.cpf;
-                    document.getElementById('edit-cargo').value = func.CARGO;
+                    document.getElementById('edit-cargo').value = func.cargo; // <-- Corrigido aqui também
                     document.getElementById('edit-senha').value = '';
                     modalEditar.classList.add('visible');
                 } else {
