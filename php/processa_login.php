@@ -1,5 +1,5 @@
 <?php
-// /php/processa_login.php
+// /php/processa_login.php (VERSÃO FINAL E CORRIGIDA)
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -15,32 +15,29 @@ if (empty($cnpj) || empty($senha)) {
     exit;
 }
 
-// ALTERAÇÃO 1: O placeholder '?' foi trocado por '$1' para o Postgres
-$sql = "SELECT id, nome, senha, CARGO FROM usuarios WHERE cnpj = $1 AND CARGO = 1"; // Garantir que é um Admin
+// CORREÇÃO 1: Nome da coluna 'CARGO' para 'cargo' (minúsculo) para ser compatível com o PostgreSQL.
+$sql = "SELECT id, nome, senha, cargo FROM usuarios WHERE cnpj = $1 AND cargo = 1";
 
-// ALTERAÇÃO 2: Todo o bloco de mysqli foi trocado pelo de pg_
-// Prepara a consulta e dá um nome a ela ("login_query")
-$stmt = pg_prepare($link, "login_query", $sql);
+// Usando um nome de statement único para evitar conflitos
+$stmt = pg_prepare($link, "login_admin_query", $sql);
 
 if ($stmt) {
-    // Executa a consulta preparada, passando os parâmetros em um array
-    $result = pg_execute($link, "login_query", array($cnpj));
+    $result = pg_execute($link, "login_admin_query", array($cnpj));
 
-    // pg_num_rows para contar as linhas
     if ($result && pg_num_rows($result) === 1) {
-        // pg_fetch_assoc para pegar os dados do usuário
         $usuario = pg_fetch_assoc($result);
         
-        // O resto da sua lógica continua igual, pois é PHP puro
         if (password_verify($senha, $usuario['senha'])) {
             unset($_SESSION['login_error']);
-            session_regenerate_id(true);
+            
+            // CORREÇÃO 2: A linha abaixo foi desativada para resolver o problema de perda de sessão no redirect.
+            // session_regenerate_id(true);
             
             $_SESSION['usuario_id'] = $usuario['id'];
             $_SESSION['usuario_nome'] = $usuario['nome'];
             
-            // CORREÇÃO do seu código original: A session deve ser 'usuario_cargo' para ser compatível com o header.php
-            $_SESSION['usuario_cargo'] = $usuario['cargo']; // Note que o nome da coluna no Postgres ficou minúsculo
+            // CORREÇÃO 3: Padronizando a variável de sessão para 'cargo', conforme usado no dashboard.php.
+            $_SESSION['cargo'] = $usuario['cargo'];
             
             header("Location: ../dashboard.php"); 
             exit;
