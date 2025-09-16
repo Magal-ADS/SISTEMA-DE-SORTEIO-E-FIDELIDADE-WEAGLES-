@@ -8,22 +8,29 @@ if (!isset($_SESSION['vendedor_autenticado']) || $_SESSION['vendedor_autenticado
     header('Location: cpf.php');
     exit();
 }
-// ... resto do seu código PHP e HTML ...
 
 require_once 'php/db_config.php';
 
 $nome_cliente = htmlspecialchars($_SESSION['cliente_nome']);
 
+// =================== INÍCIO DO BLOCO CORRIGIDO ===================
+
 // Busca a lista de VENDEDORES para o dropdown
 $vendedores = [];
-$stmt = $link->prepare("SELECT id, nome FROM usuarios WHERE CARGO = 2 ORDER BY nome ASC");
-$stmt->execute();
-$result = $stmt->get_result();
-while ($row = $result->fetch_assoc()) {
-    $vendedores[] = $row;
+// A consulta SQL é compatível, mas trocamos para 'cargo' minúsculo por padrão do Postgres
+$sql = "SELECT id, nome FROM usuarios WHERE cargo = 2 ORDER BY nome ASC";
+
+// Trocamos todo o bloco de mysqli_* para pg_*
+$result = pg_query($link, $sql);
+if ($result) {
+    while ($row = pg_fetch_assoc($result)) {
+        $vendedores[] = $row;
+    }
 }
-$stmt->close();
-$link->close();
+pg_close($link);
+
+// ==================== FIM DO BLOCO CORRIGIDO =====================
+
 
 include 'templates/header.php';
 ?>
