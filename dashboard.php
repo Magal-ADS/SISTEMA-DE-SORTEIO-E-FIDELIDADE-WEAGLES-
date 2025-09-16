@@ -1,17 +1,22 @@
 <?php
-// /dashboard.php (VERSÃO CORRIGIDA PARA POSTGRESQL)
+// /dashboard.php (VERSÃO COMPLETA E CORRIGIDA)
 
+// GARANTE QUE A SESSÃO SEJA A PRIMEIRA COISA A ACONTECER
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
+
+// Bloco de segurança robusto para evitar loops de redirect
+if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
+    // Se qualquer uma das condições falhar, destrói a sessão e redireciona
+    session_unset();
+    session_destroy();
     header("Location: login.php");
     exit();
 }
 
+// O resto do seu código continua normalmente a partir daqui
 require_once 'php/db_config.php';
-
-// =================== INÍCIO DO BLOCO CORRIGIDO ===================
 
 // --- Contar novos clientes (da loja toda) nos últimos 7 dias ---
 // MUDANÇA: DATE_SUB(NOW(), INTERVAL 7 DAY) virou NOW() - interval '7 day'
@@ -30,8 +35,6 @@ $total_vendas_formatado = "R$ " . number_format($total_vendas, 2, ',', '.');
 
 // Fecha a conexão com o banco de dados
 pg_close($link);
-
-// ==================== FIM DO BLOCO CORRIGIDO =====================
 
 include 'templates/header.php'; 
 ?>

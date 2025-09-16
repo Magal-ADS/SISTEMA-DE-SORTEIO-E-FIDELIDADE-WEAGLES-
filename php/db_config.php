@@ -7,31 +7,39 @@ error_reporting(E_ALL);
 // Pega a URL de conexão do Postgres da variável de ambiente do Heroku
 $dbUrl = getenv('DATABASE_URL');
 
-// Se a variável não existir, o app para com um erro claro.
 if ($dbUrl === false) {
-    die("Erro crítico: A variável de ambiente DATABASE_URL não foi encontrada. Verifique as configurações do Heroku.");
-}
-    
-// "Traduz" a URL para as partes que a conexão precisa
-$dbInfo = parse_url($dbUrl);
-$dbHost = $dbInfo['host'];
-$dbPort = $dbInfo['port'];
-$dbUser = $dbInfo['user'];
-$dbPass = $dbInfo['pass'];
-$dbName = ltrim($dbInfo['path'], '/');
+    // --- AMBIENTE LOCAL (SEU COMPUTADOR COM XAMPP) ---
+    // Se a DATABASE_URL não existe, usamos as configurações locais.
+    $dbHost = 'localhost';
+    $dbPort = '5432'; // Porta padrão do PostgreSQL
+    $dbUser = 'postgres'; // Usuário padrão do PostgreSQL
+    $dbPass = 'Cheldonegao2310'; // <-- MUITO IMPORTANTE: COLOQUE A SENHA QUE VOCÊ DEFINIU AO INSTALAR O POSTGRES
+    $dbName = 'sorteio_magal_store'; // O nome do seu banco de dados local
 
-// Monta a string de conexão para o PostgreSQL
+} else {
+    // --- AMBIENTE DE PRODUÇÃO (HEROKU) ---
+    // Se a DATABASE_URL existe, usamos as configurações do Heroku.
+    $dbInfo = parse_url($dbUrl);
+    $dbHost = $dbInfo['host'];
+    $dbPort = $dbInfo['port'];
+    $dbUser = $dbInfo['user'];
+    $dbPass = $dbInfo['pass'];
+    $dbName = ltrim($dbInfo['path'], '/');
+}
+
+// Monta a string de conexão para o PostgreSQL (funciona para ambos os ambientes)
 $connection_string = "host={$dbHost} port={$dbPort} dbname={$dbName} user={$dbUser} password={$dbPass}";
 
-// Tenta criar a conexão usando a função específica do Postgres: pg_connect
+// Tenta criar a conexão
 $link = pg_connect($connection_string);
 
 // Checa se a conexão foi bem-sucedida
 if (!$link) {
-    die("Falha na conexão com o banco de dados PostgreSQL.");
+    // Adiciona a variável de erro do postgres para mais detalhes
+    die("Falha na conexão com o banco de dados: " . pg_last_error($link));
 }
 
-// Garante que a comunicação use o formato UTF-8 para evitar problemas com acentos
+// Garante que a comunicação use o formato UTF-8
 pg_set_client_encoding($link, "UTF8");
 
 ?>
