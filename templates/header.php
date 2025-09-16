@@ -61,7 +61,7 @@ if (!isset($show_header) || $show_header !== false):
 
                 <div class="header-brand">
                     <a href="dashboard_vendedora.php" style="text-decoration:none;">
-                         <span class="header-title">🛍️ Vendedora: <?php echo htmlspecialchars($_SESSION['usuario_nome']); ?></span>
+                         <span class="header-title">🛍️ Vendedor(a): <?php echo htmlspecialchars($_SESSION['usuario_nome']); ?></span>
                     </a>
                 </div>
                 <nav class="header-nav">
