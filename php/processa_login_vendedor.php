@@ -13,25 +13,26 @@ if (empty($cpf) || empty($senha)) {
     exit;
 }
 
-// CORREÇÃO 1: Nome da coluna 'CARGO' para 'cargo' (minúsculo) para ser compatível com o PostgreSQL.
+// =================== CORREÇÃO APLICADA AQUI ===================
+// Adicionamos esta linha para remover os pontos e o traço do CPF
+$cpf_limpo = preg_replace('/[^0-9]/', '', $cpf);
+// =============================================================
+
 $sql = "SELECT id, nome, senha, cargo FROM usuarios WHERE cpf = $1 AND cargo = 2";
 
-// Usando um nome de statement único para evitar conflitos
 $stmt = pg_prepare($link, "vendedor_login_query", $sql);
 
 if ($stmt) {
-    $result = pg_execute($link, "vendedor_login_query", array($cpf));
+    // Agora usamos o $cpf_limpo na busca
+    $result = pg_execute($link, "vendedor_login_query", array($cpf_limpo));
 
     if ($result && pg_num_rows($result) === 1) {
         $usuario = pg_fetch_assoc($result);
         if (password_verify($senha, $usuario['senha'])) {
-            // CORREÇÃO 2: A linha abaixo foi desativada para resolver o problema de perda de sessão.
-            // session_regenerate_id(true);
+            // session_regenerate_id(true); // Desativado para Heroku
             
             $_SESSION['usuario_id'] = $usuario['id'];
             $_SESSION['usuario_nome'] = $usuario['nome'];
-            
-            // CORREÇÃO 3: Padronizando a variável de sessão para 'cargo', conforme usado no dashboard_vendedora.php
             $_SESSION['cargo'] = $usuario['cargo']; 
             
             header("Location: ../dashboard_vendedora.php"); 
