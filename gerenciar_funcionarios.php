@@ -98,7 +98,7 @@ include 'templates/header.php';
         </div>
         <div class="form-group">
             <label for="cpf-modal">CPF</label>
-            <input type="text" id="cpf-modal" name="cpf" placeholder="000.000.000-00" required>
+            <input type="text" id="cpf-modal" name="cpf" placeholder="000.000.000-00" required maxlength="14">
         </div>
         <div class="form-group">
             <label for="senha">Senha de Acesso</label>
@@ -129,7 +129,7 @@ include 'templates/header.php';
         </div>
         <div class="form-group">
             <label for="edit-cpf">CPF</label>
-            <input type="text" id="edit-cpf" name="cpf" placeholder="000.000.000-00" required>
+            <input type="text" id="edit-cpf" name="cpf" placeholder="000.000.000-00" required maxlength="14">
         </div>
         <div class="form-group">
             <label for="edit-senha">Nova Senha (opcional)</label>
@@ -169,12 +169,24 @@ include 'templates/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- LÓGICA EXISTENTE DOS MODAIS (INALTERADA) ---
     const tabelaBody = document.getElementById('tabela-funcionarios-body');
     const modalAdicionar = document.getElementById('modal-adicionar-funcionario');
     const formAdicionar = document.getElementById('form-adicionar-funcionario');
     const btnAbrirPopupAdicionar = document.getElementById('btn-abrir-popup-adicionar');
     const btnCancelarAdicao = document.getElementById('btn-cancelar-adicao');
     const erroAdicionarMsg = document.getElementById('modal-adicionar-error-message');
+    const modalRemover = document.getElementById('modal-confirmar-remocao');
+    const formRemover = document.getElementById('form-confirmar-remocao');
+    const btnCancelarRemocao = document.getElementById('btn-cancelar-remocao');
+    const nomeFuncionarioSpan = document.getElementById('nome-funcionario-para-remover');
+    const idFuncionarioInput = document.getElementById('id-funcionario-para-remover');
+    const senhaAdminInput = document.getElementById('senha_admin');
+    const erroRemoverMsg = document.getElementById('modal-remover-error-message');
+    const modalEditar = document.getElementById('modal-editar-funcionario');
+    const formEditar = document.getElementById('form-editar-funcionario');
+    const btnCancelarEdicao = document.getElementById('btn-cancelar-edicao');
+    const erroEditarMsg = document.getElementById('modal-editar-error-message');
 
     if (btnAbrirPopupAdicionar) {
         btnAbrirPopupAdicionar.addEventListener('click', () => {
@@ -225,18 +237,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    const modalRemover = document.getElementById('modal-confirmar-remocao');
-    const formRemover = document.getElementById('form-confirmar-remocao');
-    const btnCancelarRemocao = document.getElementById('btn-cancelar-remocao');
-    const nomeFuncionarioSpan = document.getElementById('nome-funcionario-para-remover');
-    const idFuncionarioInput = document.getElementById('id-funcionario-para-remover');
-    const senhaAdminInput = document.getElementById('senha_admin');
-    const erroRemoverMsg = document.getElementById('modal-remover-error-message');
-    const modalEditar = document.getElementById('modal-editar-funcionario');
-    const formEditar = document.getElementById('form-editar-funcionario');
-    const btnCancelarEdicao = document.getElementById('btn-cancelar-edicao');
-    const erroEditarMsg = document.getElementById('modal-editar-error-message');
-
     tabelaBody.addEventListener('click', function(e) {
         if (e.target && e.target.classList.contains('delete')) {
             const button = e.target;
@@ -257,8 +257,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     const func = data.funcionario;
                     document.getElementById('edit-id').value = id;
                     document.getElementById('edit-nome').value = func.nome;
-                    document.getElementById('edit-cpf').value = func.cpf;
-                    document.getElementById('edit-cargo').value = func.cargo; // <-- Corrigido aqui também
+                    
+                    // =================== MELHORIA APLICADA AQUI ===================
+                    // Agora usamos a função para formatar o CPF antes de exibir
+                    document.getElementById('edit-cpf').value = formatarCPF(func.cpf); 
+                    
+                    document.getElementById('edit-cargo').value = func.cargo;
                     document.getElementById('edit-senha').value = '';
                     modalEditar.classList.add('visible');
                 } else {
@@ -333,6 +337,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 btnSalvarEdicao.textContent = 'Salvar Alterações';
             });
         });
+    }
+
+    // ==========================================================
+    // CÓDIGO DA MÁSCARA DE CPF (MELHORADO)
+    // ==========================================================
+
+    const inputCpfAdicionar = document.getElementById('cpf-modal');
+    const inputCpfEditar = document.getElementById('edit-cpf');
+
+    // Função que formata qualquer string de CPF para o padrão XXX.XXX.XXX-XX
+    function formatarCPF(cpf) {
+        let value = String(cpf).replace(/\D/g, ''); 
+
+        // Limita o tamanho para não ultrapassar 11 dígitos
+        if (value.length > 11) {
+            value = value.substring(0, 11);
+        }
+
+        // Aplica a formatação com expressões regulares
+        value = value.replace(/(\d{3})(\d)/, '$1.$2');
+        value = value.replace(/(\d{3})(\d)/, '$1.$2');
+        value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+        
+        return value;
+    }
+
+    // Função para ser usada no evento de 'input' (quando o usuário digita)
+    function aplicarMascaraCPF(e) {
+        e.target.value = formatarCPF(e.target.value);
+    }
+
+    if (inputCpfAdicionar) {
+        inputCpfAdicionar.addEventListener('input', aplicarMascaraCPF);
+    }
+    if (inputCpfEditar) {
+        inputCpfEditar.addEventListener('input', aplicarMascaraCPF);
     }
 });
 </script>
