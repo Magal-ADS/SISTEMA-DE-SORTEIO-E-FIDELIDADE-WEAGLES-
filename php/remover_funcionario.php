@@ -1,5 +1,5 @@
 <?php
-// /php/remover_funcionario.php (VERSÃO FINAL COM LÓGICA DE VERIFICAÇÃO ROBUSTA)
+// /php/remover_funcionario.php (VERSÃO COM SOFT DELETE)
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -27,13 +27,13 @@ if (empty($funcionario_id_para_remover) || empty($senha_admin_digitada)) {
 
 // ETAPA 1: Verificar a senha do administrador logado
 $sql_admin = "SELECT senha FROM usuarios WHERE id = $1";
-$stmt_admin = pg_prepare($link, "remover_func_get_admin_pass", $sql_admin);
+$stmt_admin = pg_prepare($link, "soft_delete_get_admin_pass", $sql_admin);
 if (!$stmt_admin) {
     $response['message'] = 'Erro (R1) na preparação da consulta.';
     echo json_encode($response);
     exit;
 }
-$result_admin = pg_execute($link, "remover_func_get_admin_pass", [$admin_id_logado]);
+$result_admin = pg_execute($link, "soft_delete_get_admin_pass", [$admin_id_logado]);
 $admin_data = pg_fetch_assoc($result_admin);
 
 if (!$admin_data || !password_verify($senha_admin_digitada, $admin_data['senha'])) {
@@ -42,43 +42,20 @@ if (!$admin_data || !password_verify($senha_admin_digitada, $admin_data['senha']
     exit;
 }
 
-// ETAPA 2: Verificar se o funcionário possui vendas associadas
-$sql_check_vendas = "SELECT COUNT(id) as total_vendas FROM compras WHERE vendedor_id = $1";
-$stmt_check_vendas = pg_prepare($link, "remover_func_check_vendas", $sql_check_vendas);
-if (!$stmt_check_vendas) {
-    $response['message'] = 'Erro (R2) na preparação da consulta.';
-    echo json_encode($response);
-    exit;
-}
-$result_check = pg_execute($link, "remover_func_check_vendas", [$funcionario_id_para_remover]);
-$vendas = pg_fetch_assoc($result_check);
+// ETAPA 2: Se a senha estiver correta, INATIVA o funcionário (UPDATE, não DELETE)
+$sql_inativar = "UPDATE usuarios SET ativo = FALSE WHERE id = $1";
+$stmt_inativar = pg_prepare($link, "inativar_funcionario_query", $sql_inativar);
 
-// =================== LÓGICA DE DECISÃO CORRIGIDA ===================
-// Agora, só tentamos deletar se a contagem de vendas for exatamente 0.
-
-if ($vendas && $vendas['total_vendas'] > 0) {
-    // Caso 1: Funcionário tem vendas, não pode ser removido.
-    $response['message'] = 'Este funcionário não pode ser removido pois possui ' . $vendas['total_vendas'] . ' venda(s) associada(s) a ele.';
-
-} else if ($vendas && $vendas['total_vendas'] == 0) {
-    // Caso 2: Funcionário não tem vendas, pode ser removido.
-    $sql_delete = "DELETE FROM usuarios WHERE id = $1";
-    $stmt_delete = pg_prepare($link, "remover_func_delete_final", $sql_delete);
-    if ($stmt_delete) {
-        $result_delete = pg_execute($link, "remover_func_delete_final", [$funcionario_id_para_remover]);
-        if ($result_delete && pg_affected_rows($result_delete) > 0) {
-            $response = ['status' => 'success', 'message' => 'Funcionário removido com sucesso!'];
-        } else {
-            $response['message'] = 'Erro (R3) ao remover funcionário. Ele pode já ter sido removido.';
-        }
+if ($stmt_inativar) {
+    $result_inativar = pg_execute($link, "inativar_funcionario_query", [$funcionario_id_para_remover]);
+    if ($result_inativar && pg_affected_rows($result_inativar) > 0) {
+        $response = ['status' => 'success', 'message' => 'Funcionário inativado com sucesso!'];
     } else {
-        $response['message'] = 'Erro (R4) na preparação da consulta de remoção.';
+        $response['message'] = 'Nenhum funcionário encontrado com este ID ou erro ao inativar.';
     }
 } else {
-    // Caso 3: Falha na verificação de vendas.
-    $response['message'] = 'Não foi possível verificar as vendas do funcionário.';
+    $response['message'] = 'Erro na preparação da consulta de inativação.';
 }
-// ====================================================================
 
 pg_close($link);
 echo json_encode($response);

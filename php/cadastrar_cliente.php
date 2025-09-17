@@ -1,5 +1,5 @@
 <?php
-// /php/cadastrar_cliente.php
+// /php/cadastrar_cliente.php (VERSÃO COM TRATAMENTO DE ERRO CORRIGIDO)
 
 session_start();
 require_once "db_config.php";
@@ -7,15 +7,17 @@ header('Content-Type: application/json');
 
 $response = ['status' => 'error', 'message' => 'Ocorreu um erro desconhecido.'];
 
-// Associa o cliente ao usuário/loja padrão (ID 1)
 $usuario_id = 1; 
 
-$cpf = $_POST['cpf'] ?? ''; 
+$cpf_da_sessao = $_SESSION['cpf_digitado'] ?? '';
 $nome = trim($_POST['nome'] ?? '');
-$whatsapp = trim($_POST['whatsapp'] ?? '');
+$whatsapp_sujo = trim($_POST['whatsapp'] ?? '');
 $nascimento_br = trim($_POST['nascimento'] ?? ''); 
 
-if (empty($cpf) || empty($nome) || empty($whatsapp) || empty($nascimento_br)) {
+$cpf_limpo = preg_replace('/[^0-9]/', '', $cpf_da_sessao);
+$whatsapp_limpo = preg_replace('/[^0-9]/', '', $whatsapp_sujo);
+
+if (empty($cpf_limpo) || empty($nome) || empty($whatsapp_limpo) || empty($nascimento_br)) {
     $response['message'] = 'Todos os campos são obrigatórios.';
     echo json_encode($response);
     exit;
@@ -29,30 +31,33 @@ if (!$date_obj || $date_obj->format('d/m/Y') !== $nascimento_br) {
 }
 $nascimento_para_banco = $date_obj->format('Y-m-d');
 
-
-// ALTERADO: SQL com placeholders do Postgres e 'RETURNING id'
 $sql = "INSERT INTO clientes (cpf, nome_completo, whatsapp, data_nascimento, usuario_id) VALUES ($1, $2, $3, $4, $5) RETURNING id";
 
-// ALTERADO: Bloco de consulta para usar as funções do Postgres
 $stmt = pg_prepare($link, "cadastrar_cliente_query", $sql);
 if ($stmt) {
-    $result = pg_execute($link, "cadastrar_cliente_query", array($cpf, $nome, $whatsapp, $nascimento_para_banco, $usuario_id));
+    // A @ suprime o Warning do PHP, pois vamos tratar o erro manualmente
+    $result = @pg_execute($link, "cadastrar_cliente_query", array($cpf_limpo, $nome, $whatsapp_limpo, $nascimento_para_banco, $usuario_id));
     
     if ($result && pg_num_rows($result) > 0) {
-        
-        // Pega o ID do cliente que o "RETURNING id" devolveu
+        // Bloco de sucesso (inalterado)
         $row = pg_fetch_assoc($result);
         $_SESSION['cliente_id'] = $row['id'];
         $_SESSION['cliente_nome'] = $nome;
-
-        $response = ['status' => 'success', 'message' => 'Cliente cadastrado com sucesso!'];
+        unset($_SESSION['cpf_digitado']);
+        $response = ['status' => 'success', 'message' => 'Cliente cadastrado com sucesso!', 'redirect' => 'dados_compra.php'];
+    
     } else {
-        // ALTERADO: Tratamento de erro para chave duplicada no Postgres
-        if (pg_result_error_field($result, PGSQL_DIAG_SQLSTATE) == "23505") {
+        // =================== BLOCO DE ERRO CORRIGIDO ===================
+        // Se a execução falhou ($result é false), pegamos o erro da conexão.
+        $error_message = pg_last_error($link);
+        
+        // Verificamos se a mensagem de erro contém o código de violação de unicidade (23505)
+        if (strpos($error_message, '23505') !== false) {
              $response['message'] = 'Este CPF já está cadastrado.';
         } else {
-             $response['message'] = 'Erro ao cadastrar o cliente.';
+             $response['message'] = 'Erro ao cadastrar o cliente no banco de dados.';
         }
+        // ===============================================================
     }
 } else {
     $response['message'] = 'Erro na preparação da consulta.';

@@ -1,5 +1,5 @@
 <?php
-// /gerenciar_funcionarios.php (VERSÃO FINAL E CORRIGIDA)
+// /gerenciar_funcionarios.php (VERSÃO COM SOFT DELETE E FILTRO DE ATIVOS)
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -14,12 +14,14 @@ require_once 'php/db_config.php';
 $funcionarios = [];
 $admin_id = $_SESSION['usuario_id'];
 
-// CORREÇÃO 1: 'CARGO' para 'cargo' (minúsculo) na consulta SQL
-$sql = "SELECT id, nome, cpf, cargo FROM usuarios WHERE cargo != 1 AND id != $1";
+// =================== ALTERAÇÃO IMPORTANTE AQUI ===================
+// Adicionamos "AND ativo = TRUE" para buscar apenas os funcionários ativos.
+// Também adicionamos um ORDER BY para a lista ficar em ordem alfabética.
+$sql = "SELECT id, nome, cpf, cargo FROM usuarios WHERE cargo != 1 AND id != $1 AND ativo = TRUE ORDER BY nome ASC";
 
-$stmt = pg_prepare($link, "listar_funcionarios_query", $sql);
+$stmt = pg_prepare($link, "listar_funcionarios_ativos_query", $sql);
 if ($stmt) {
-    $result = pg_execute($link, "listar_funcionarios_query", [$admin_id]);
+    $result = pg_execute($link, "listar_funcionarios_ativos_query", [$admin_id]);
     if ($result) {
         while ($row = pg_fetch_assoc($result)) {
             $funcionarios[] = $row;
@@ -169,7 +171,7 @@ include 'templates/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // --- LÓGICA EXISTENTE DOS MODAIS (INALTERADA) ---
+    // Lógica dos modais (fetch, etc.)
     const tabelaBody = document.getElementById('tabela-funcionarios-body');
     const modalAdicionar = document.getElementById('modal-adicionar-funcionario');
     const formAdicionar = document.getElementById('form-adicionar-funcionario');
@@ -257,11 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const func = data.funcionario;
                     document.getElementById('edit-id').value = id;
                     document.getElementById('edit-nome').value = func.nome;
-                    
-                    // =================== MELHORIA APLICADA AQUI ===================
-                    // Agora usamos a função para formatar o CPF antes de exibir
                     document.getElementById('edit-cpf').value = formatarCPF(func.cpf); 
-                    
                     document.getElementById('edit-cargo').value = func.cargo;
                     document.getElementById('edit-senha').value = '';
                     modalEditar.classList.add('visible');
@@ -339,31 +337,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ==========================================================
-    // CÓDIGO DA MÁSCARA DE CPF (MELHORADO)
-    // ==========================================================
-
     const inputCpfAdicionar = document.getElementById('cpf-modal');
     const inputCpfEditar = document.getElementById('edit-cpf');
 
-    // Função que formata qualquer string de CPF para o padrão XXX.XXX.XXX-XX
     function formatarCPF(cpf) {
         let value = String(cpf).replace(/\D/g, ''); 
-
-        // Limita o tamanho para não ultrapassar 11 dígitos
         if (value.length > 11) {
             value = value.substring(0, 11);
         }
-
-        // Aplica a formatação com expressões regulares
         value = value.replace(/(\d{3})(\d)/, '$1.$2');
         value = value.replace(/(\d{3})(\d)/, '$1.$2');
         value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-        
         return value;
     }
 
-    // Função para ser usada no evento de 'input' (quando o usuário digita)
     function aplicarMascaraCPF(e) {
         e.target.value = formatarCPF(e.target.value);
     }

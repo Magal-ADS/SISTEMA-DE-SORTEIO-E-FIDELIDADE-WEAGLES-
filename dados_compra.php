@@ -1,9 +1,8 @@
 <?php
-// /dados_compra.php
+// /dados_compra.php (VERSÃO FINAL COM FILTRO DE VENDEDORES ATIVOS)
 
 session_start();
 
-// VERIFICAÇÃO DE SEGURANÇA CORRETA (A "Pulseira VIP" certa)
 if (!isset($_SESSION['vendedor_autenticado']) || $_SESSION['vendedor_autenticado'] !== true) {
     header('Location: cpf.php');
     exit();
@@ -13,14 +12,12 @@ require_once 'php/db_config.php';
 
 $nome_cliente = htmlspecialchars($_SESSION['cliente_nome']);
 
-// =================== INÍCIO DO BLOCO CORRIGIDO ===================
-
-// Busca a lista de VENDEDORES para o dropdown
 $vendedores = [];
-// A consulta SQL é compatível, mas trocamos para 'cargo' minúsculo por padrão do Postgres
-$sql = "SELECT id, nome FROM usuarios WHERE cargo = 2 ORDER BY nome ASC";
 
-// Trocamos todo o bloco de mysqli_* para pg_*
+// =================== ALTERAÇÃO IMPORTANTE AQUI ===================
+// Adicionamos "AND ativo = TRUE" para buscar apenas os vendedores ativos.
+$sql = "SELECT id, nome FROM usuarios WHERE cargo = 2 AND ativo = TRUE ORDER BY nome ASC";
+
 $result = pg_query($link, $sql);
 if ($result) {
     while ($row = pg_fetch_assoc($result)) {
@@ -28,9 +25,6 @@ if ($result) {
     }
 }
 pg_close($link);
-
-// ==================== FIM DO BLOCO CORRIGIDO =====================
-
 
 include 'templates/header.php';
 ?>
