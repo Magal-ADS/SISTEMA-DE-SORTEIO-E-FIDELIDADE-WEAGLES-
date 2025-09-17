@@ -1,5 +1,5 @@
 <?php
-// /base_clientes.php (VERSÃO COM CORREÇÃO DE CSS E NULOS)
+// /base_clientes.php (VERSÃO COM BARRA DE PESQUISA)
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -24,7 +24,7 @@ $clientes = [];
 $admin_id = $_SESSION['usuario_id'];
 $sql = '';
 $params = [];
-$query_name = 'admin_filtro_' . $filtro_ativo;
+$query_name = 'admin_filtro_' . $filtro_ativo . '_v2';
 switch ($filtro_ativo) {
     case 'aniversariantes_dia':
         $sql = "SELECT nome_completo, whatsapp, data_nascimento, data_cadastro FROM clientes WHERE usuario_id = $1 AND EXTRACT(DAY FROM data_nascimento) = EXTRACT(DAY FROM CURRENT_DATE) AND EXTRACT(MONTH FROM data_nascimento) = EXTRACT(MONTH FROM CURRENT_DATE)";
@@ -60,24 +60,35 @@ pg_close($link);
     .filter-nav a { background-color: rgba(255, 255, 255, 0.1); color: var(--cor-branco); border-color: rgba(255, 255, 255, 0.2); }
     .filter-nav a:hover { background-color: rgba(255, 255, 255, 0.2); border-color: var(--cor-dourado); }
     .filter-nav a.active { background: var(--cor-dourado) !important; color: var(--cor-texto-principal) !important; }
-    
-    /* =================== AJUSTES DE CSS APLICADOS AQUI =================== */
-    .table-wrapper { 
-        background-color: rgba(44, 44, 44, 0.5); 
-        backdrop-filter: blur(10px); 
-        border: 1px solid rgba(255, 255, 255, 0.1); 
-        width: 100%; /* Garante que o container da tabela ocupe todo o espaço */
-        overflow-x: auto; /* Adiciona rolagem horizontal se a tabela for muito larga para a tela */
-    }
-    .data-table {
-        width: 100%; /* Faz a tabela de fato usar os 100% do container */
-        border-collapse: collapse; /* Melhora a aparência das bordas */
-    }
-    /* ===================================================================== */
-
+    .table-wrapper { background-color: rgba(44, 44, 44, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); width: 100%; overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; }
     .data-table th, .data-table td { color: var(--cor-branco) !important; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
     .data-table th { opacity: 0.9; }
     .data-table td { opacity: 0.7; }
+    
+    /* =================== NOVO CSS PARA A BARRA DE PESQUISA =================== */
+    .search-container {
+        margin-bottom: 1.5rem;
+    }
+    #searchInput {
+        width: 100%;
+        padding: 12px 20px;
+        background-color: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 50px;
+        color: var(--cor-branco);
+        font-size: 1rem;
+        outline: none;
+        transition: border-color 0.3s ease;
+        box-sizing: border-box;
+    }
+    #searchInput::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+    }
+    #searchInput:focus {
+        border-color: var(--cor-dourado);
+    }
+    /* ======================================================================= */
 </style>
 <div class="page-container">
     <header class="page-header">
@@ -85,6 +96,9 @@ pg_close($link);
         <p>Visualize e filtre todos os clientes cadastrados em sua loja.</p>
     </header>
 
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Pesquisar por nome do cliente...">
+    </div>
     <nav class="filter-nav">
         <a href="base_clientes.php?filtro=todos" class="<?php echo ($filtro_ativo == 'todos') ? 'active' : ''; ?>">Todos</a>
         <a href="base_clientes.php?filtro=aniversariantes_dia" class="<?php echo ($filtro_ativo == 'aniversariantes_dia') ? 'active' : ''; ?>">Aniversariantes do Dia</a>
@@ -111,7 +125,7 @@ pg_close($link);
             </thead>
             <tbody>
                 <?php if (empty($clientes)): ?>
-                    <tr><td colspan="5" style="text-align:center;">Nenhum cliente encontrado para este filtro.</td></tr>
+                    <tr id="linha-sem-dados"><td colspan="5" style="text-align:center;">Nenhum cliente encontrado para este filtro.</td></tr>
                 <?php else: ?>
                     <?php foreach ($clientes as $cliente): ?>
                         <tr>
@@ -125,11 +139,49 @@ pg_close($link);
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
+                <tr id="linha-sem-resultado-busca" style="display: none;"><td colspan="5" style="text-align:center;">Nenhum cliente encontrado com este nome.</td></tr>
             </tbody>
         </table>
     </div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const tableBody = document.querySelector('.data-table tbody');
+    const allRows = Array.from(tableBody.querySelectorAll('tr:not(#linha-sem-resultado-busca)'));
+    const noFilterResultsRow = document.getElementById('linha-sem-dados');
+    const noSearchResultsRow = document.getElementById('linha-sem-resultado-busca');
+
+    searchInput.addEventListener('keyup', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        let visibleRows = 0;
+
+        // Esconde a mensagem de "sem resultado de filtro" se ela existir
+        if (noFilterResultsRow) noFilterResultsRow.style.display = 'none';
+
+        allRows.forEach(row => {
+            const clientNameCell = row.querySelector('td:first-child');
+            if (clientNameCell) {
+                const clientName = clientNameCell.textContent.toLowerCase();
+                if (clientName.includes(searchTerm)) {
+                    row.style.display = '';
+                    visibleRows++;
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+
+        // Controla a exibição da mensagem "Nenhum cliente encontrado com este nome"
+        if (visibleRows === 0 && !noFilterResultsRow) {
+            noSearchResultsRow.style.display = 'table-row';
+        } else {
+            noSearchResultsRow.style.display = 'none';
+        }
+    });
+});
+</script>
 <?php
 include 'templates/footer.php';
 ?>
