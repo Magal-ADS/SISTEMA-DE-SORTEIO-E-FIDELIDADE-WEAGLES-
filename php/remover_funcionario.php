@@ -64,4 +64,5 @@ if ($stmt_delete) {
 
 pg_close($link);
 echo json_encode($response);
-?>
+?>  
+
