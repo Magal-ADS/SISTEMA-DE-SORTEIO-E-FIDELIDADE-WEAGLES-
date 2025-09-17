@@ -24,7 +24,7 @@ include 'templates/header.php';
 <title>Magal Store - Participe</title>
 
 <div class="card-container">
-    <img src="images/weagles.jpg" alt="Logo da Weagles" class="logo-image">
+    <img src="images/spiny.jpg" alt="Logo da Weagles" class="logo-image">
     
     <h1>Participe e Concorra!</h1>
     
