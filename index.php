@@ -5,17 +5,14 @@
 require_once 'php/db_config.php';
 
 // 2. Busca o texto do card de informação no banco
-// ALTERADO AQUI: de $link->query() para pg_query($link, ...)
 $result_config = pg_query($link, "SELECT valor FROM configuracoes WHERE chave = 'tela_inicial_info_card_texto'");
 $info_card_text = "Participe e concorra a prêmios incríveis!"; // Texto padrão
 if ($result_config) {
-    // ALTERADO AQUI: de $result_config->fetch_assoc() para pg_fetch_assoc($result_config)
     $config_data = pg_fetch_assoc($result_config);
     if ($config_data) {
         $info_card_text = $config_data['valor'];
     }
 }
-// ALTERADO AQUI: de $link->close() para pg_close($link)
 pg_close($link);
 
 include 'templates/header.php'; 
@@ -23,6 +20,15 @@ include 'templates/header.php';
 
 <title>Magal Store - Participe</title>
 
+<style>
+    .info-card-text {
+        font-size: 18px; /* Aumenta o tamanho do texto. Altere se quiser. */
+        font-weight: 500; /* Deixa o texto um pouco mais encorpado */
+    }
+    .info-card-icon {
+        font-size: 24px; /* Aumenta o ícone para combinar com o texto */
+    }
+</style>
 <div class="card-container">
     <img src="images/spiny.jpg" alt="Logo da Weagles" class="logo-image">
     
