@@ -7,7 +7,7 @@ $response = ['status' => 'error', 'message' => 'Ocorreu um erro.'];
 $senha_digitada = $_POST['senha_geral'] ?? '';
 
 // A senha geral e fixa
-$senha_correta = '1234456789';
+$senha_correta = '1234';
 
 if (empty($senha_digitada)) {
     $response['message'] = 'Por favor, digite a senha.';
