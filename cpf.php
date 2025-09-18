@@ -1,5 +1,6 @@
 <?php 
 session_start();
+// Limpa sessões antigas para garantir um fluxo limpo
 unset($_SESSION['cliente_id']);
 unset($_SESSION['cliente_nome']);
 unset($_SESSION['cpf_cliente']);
@@ -18,8 +19,8 @@ include 'templates/header.php';
         <div class="form-group">
             <label for="cpf">CPF</label>
             <input type="text" id="cpf" name="cpf" placeholder="000.000.000-00" required 
-                   maxlength="14" inputmode="numeric">
-        </div>
+                   maxlength="14" inputmode="numeric" autocomplete="off">
+            </div>
         
         <p id="error-message" style="color: #D8000C; text-align: center; min-height: 20px;"></p>
 
@@ -28,7 +29,7 @@ include 'templates/header.php';
 </div>
 
 <script>
-// ==================== MÁSCARA DE CPF (VERSÃO CORRIGIDA) ====================
+// Máscara de CPF (sem alterações)
 document.getElementById('cpf').addEventListener('input', function(e) {
     let value = e.target.value.replace(/\D/g, '').substring(0, 11);
     const chars = value.split('');
@@ -48,7 +49,7 @@ document.getElementById('cpf').addEventListener('input', function(e) {
 });
 
 
-// ==================== LÓGICA AJAX (sem alterações) ====================
+// Lógica AJAX (sem alterações)
 document.getElementById('cpf-form').addEventListener('submit', function(event) {
     event.preventDefault();
     const cpfInput = document.getElementById('cpf');
@@ -60,8 +61,6 @@ document.getElementById('cpf-form').addEventListener('submit', function(event) {
     submitButton.textContent = 'Verificando...';
 
     const formData = new FormData();
-    // Importante: Mesmo com a máscara, o PHP receberá o valor com pontos e traços.
-    // O seu script verificar_cpf.php deve estar preparado para limpar a string.
     formData.append('cpf', cpfInput.value);
 
     fetch('php/verificar_cpf.php', {
