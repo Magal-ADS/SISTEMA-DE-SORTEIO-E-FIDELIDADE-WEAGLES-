@@ -15,15 +15,15 @@ include 'templates/header.php';
         <input type="hidden" name="cpf" value="<?php echo htmlspecialchars($cpf_cliente); ?>">
         <div class="form-group">
             <label for="nome">Nome Completo</label>
-            <input type="text" id="nome" name="nome" required>
+            <input type="text" id="nome" name="nome" required autocomplete="off">
         </div>
         <div class="form-group">
             <label for="whatsapp">WhatsApp</label>
-            <input type="tel" id="whatsapp" name="whatsapp" placeholder="(XX) XXXXX-XXXX" required>
+            <input type="tel" id="whatsapp" name="whatsapp" placeholder="(XX) XXXXX-XXXX" required autocomplete="off">
         </div>
         <div class="form-group">
             <label for="nascimento">Data de Nascimento</label>
-            <input type="text" id="nascimento" name="nascimento" placeholder="DD/MM/AAAA" maxlength="10" required>
+            <input type="text" id="nascimento" name="nascimento" placeholder="DD/MM/AAAA" maxlength="10" required autocomplete="off">
         </div>
         <p id="form-error-message" style="color: #D8000C; text-align: center; min-height: 20px;"></p>
         <button type="submit" class="btn btn-verde">Finalizar Cadastro</button>
@@ -42,14 +42,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     const form = document.getElementById('cadastro-form');
-    // --- INÍCIO DA CORREÇÃO ---
-    let isSubmitting = false; // Cria uma "trava"
+    let isSubmitting = false;
 
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        if (isSubmitting) return; // Se já estiver enviando, ignora o clique
-        isSubmitting = true;      // Ativa a trava
+        if (isSubmitting) return;
+        isSubmitting = true;
 
         const button = form.querySelector('button[type="submit"]');
         const errorMessage = document.getElementById('form-error-message');
@@ -72,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 errorMessage.textContent = data.message || 'Ocorreu um erro.';
                 button.disabled = false;
                 button.textContent = 'Finalizar Cadastro';
-                isSubmitting = false; // Libera a trava em caso de erro
+                isSubmitting = false;
             }
         })
         .catch(error => {
@@ -80,10 +79,9 @@ document.addEventListener('DOMContentLoaded', function() {
             errorMessage.textContent = 'Erro de conexão.';
             button.disabled = false;
             button.textContent = 'Finalizar Cadastro';
-            isSubmitting = false; // Libera a trava em caso de erro
+            isSubmitting = false;
         });
     });
-    // --- FIM DA CORREÇÃO ---
 });
 </script>
 
