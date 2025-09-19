@@ -1,5 +1,5 @@
 <?php
-// /php/adicionar_funcionario.php (VERSÃO FINAL E CORRIGIDA)
+// /php/adicionar_funcionario.php (VERSÃO COM VALIDAÇÃO DE CPF)
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -9,7 +9,6 @@ header('Content-Type: application/json');
 
 $response = ['status' => 'error', 'message' => 'Ocorreu um erro desconhecido.'];
 
-// Bloco de segurança padronizado
 if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     $response['message'] = 'Acesso não autorizado.';
     echo json_encode($response);
@@ -33,15 +32,23 @@ if (strlen($senha) < 6) {
 }
 
 $cpf_limpo = preg_replace('/[^0-9]/', '', $cpf_input);
+
+// =================== NOVA VALIDAÇÃO DE CPF ADICIONADA AQUI ===================
+if (strlen($cpf_limpo) != 11) {
+    $response['message'] = 'O CPF fornecido é inválido. Ele deve conter 11 dígitos.';
+    echo json_encode($response);
+    exit;
+}
+// ===========================================================================
+
 $hash_senha = password_hash($senha, PASSWORD_DEFAULT);
 
-// Lógica de inserção convertida para PostgreSQL
-$sql = "INSERT INTO usuarios (nome, cpf, senha, cargo) VALUES ($1, $2, $3, $4) RETURNING id";
+$sql = "INSERT INTO usuarios (nome, cpf, senha, cargo, ativo) VALUES ($1, $2, $3, $4, TRUE) RETURNING id";
 
-$stmt = pg_prepare($link, "add_funcionario_query", $sql);
+$stmt = pg_prepare($link, "add_funcionario_query_v2", $sql);
 
 if ($stmt) {
-    $result = pg_execute($link, "add_funcionario_query", [$nome, $cpf_limpo, $hash_senha, $cargo]);
+    $result = pg_execute($link, "add_funcionario_query_v2", [$nome, $cpf_limpo, $hash_senha, $cargo]);
     
     if ($result) {
         $novo_id = pg_fetch_result($result, 0, 'id');
@@ -51,12 +58,11 @@ if ($stmt) {
             'novoFuncionario' => [
                 'id' => $novo_id,
                 'nome' => $nome,
-                'cpf' => $cpf_input,
+                'cpf' => $cpf_input, // Retorna o CPF com máscara para a tela
                 'cargo' => ($cargo == 2) ? 'Vendedor' : 'Administrador'
             ]
         ];
     } else {
-        // Verifica se o erro é de CPF duplicado
         if (strpos(pg_last_error($link), 'usuarios_cpf_key') !== false) {
              $response['message'] = 'Este CPF já está cadastrado no sistema.';
         } else {
