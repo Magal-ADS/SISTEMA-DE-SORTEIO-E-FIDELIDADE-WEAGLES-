@@ -2,7 +2,7 @@
 // Arquivo temporário: php/gerar_senha.php
 
 // A senha que queremos usar
-$senhaParaCriptografar = '32426507';
+$senhaParaCriptografar = '25042021';
 
 // O PHP vai criar uma senha criptografada (hash)
 $hash = password_hash($senhaParaCriptografar, PASSWORD_DEFAULT);
