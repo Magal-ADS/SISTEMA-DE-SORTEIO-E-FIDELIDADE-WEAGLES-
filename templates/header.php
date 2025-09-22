@@ -13,9 +13,7 @@ if (session_status() === PHP_SESSION_NONE) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
     <title>Sistema de Sorteio</title>
     <link rel="icon" type="image/png" href="/favicon.png">
-    
     <link rel="manifest" href="/manifest.json">
-    
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -56,7 +54,7 @@ if (!isset($show_header) || $show_header !== false):
                     </button>
                 </div>
 
-            <?php // ==================== MENU DA VENDEDORA (ATUALIZADO) ==================== ?>
+            <?php // ==================== MENU DA VENDEDORA (COM HAMBÚRGUER) ==================== ?>
             <?php elseif (isset($_SESSION['cargo']) && $_SESSION['cargo'] == 2): ?>
 
                 <div class="header-brand">
@@ -70,6 +68,9 @@ if (!isset($show_header) || $show_header !== false):
                 </nav>
                 <div class="header-actions">
                     <a href="logout.php" class="btn-logout">Sair</a>
+                    <button class="hamburger-menu" id="hamburger-menu">
+                        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                    </button>
                 </div>
             
             <?php // ==================== MENU DE VISITANTE ==================== ?>
@@ -91,8 +92,9 @@ if (!isset($show_header) || $show_header !== false):
         </div>
     </header>
 
-    <?php // O MENU LATERAL SÓ EXISTE PARA O ADMIN (e já tinha o link de Início) ?>
-    <?php if (isset($_SESSION['cargo']) && $_SESSION['cargo'] == 1): ?>
+    <?php // =================== MENU LATERAL PARA ADMIN E VENDEDORA =================== ?>
+    <?php if (isset($_SESSION['cargo'])): ?>
+        <?php if ($_SESSION['cargo'] == 1): // Menu do Admin ?>
         <nav class="side-nav" id="side-nav">
             <ul>
                 <li><a href="dashboard.php">Início</a></li>
@@ -102,6 +104,15 @@ if (!isset($show_header) || $show_header !== false):
                 <li><a href="logout.php">Sair</a></li>
             </ul>
         </nav>
+        <?php elseif ($_SESSION['cargo'] == 2): // Menu da Vendedora ?>
+        <nav class="side-nav" id="side-nav">
+            <ul>
+                <li><a href="dashboard_vendedora.php">Início</a></li>
+                <li><a href="base_clientes_vendedor.php">Base de Clientes</a></li>
+                <li><a href="logout.php">Sair</a></li>
+            </ul>
+        </nav>
+        <?php endif; ?>
     <?php endif; ?>
 
 <?php endif; ?>
@@ -109,6 +120,7 @@ if (!isset($show_header) || $show_header !== false):
 <main class="main-content">
 
 <script>
+    // Adiciona o Service Worker para PWA
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/sw.js')
@@ -120,4 +132,37 @@ if (!isset($show_header) || $show_header !== false):
                 });
         });
     }
+
+    // =================== JAVASCRIPT DOS MENUS (UNIFICADO) ===================
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // --- Lógica do Menu Hambúrguer (agora funciona para ambos) ---
+        const hamburger = document.getElementById('hamburger-menu');
+        const sideNav = document.getElementById('side-nav');
+        
+        if (hamburger && sideNav) {
+            hamburger.addEventListener('click', function() {
+                this.classList.toggle('active');
+                sideNav.classList.toggle('active');
+            });
+        }
+        
+        // --- Lógica do Dropdown do Admin ---
+        const userMenuButton = document.getElementById('user-menu-button');
+        const userDropdownMenu = document.getElementById('user-dropdown-menu');
+
+        if (userMenuButton && userDropdownMenu) {
+            userMenuButton.addEventListener('click', function(event) {
+                event.stopPropagation(); // Impede que o clique se propague para o window
+                userDropdownMenu.classList.toggle('active');
+            });
+
+            // Fecha o dropdown se clicar fora dele
+            window.addEventListener('click', function() {
+                if (userDropdownMenu.classList.contains('active')) {
+                    userDropdownMenu.classList.remove('active');
+                }
+            });
+        }
+    });
 </script>
