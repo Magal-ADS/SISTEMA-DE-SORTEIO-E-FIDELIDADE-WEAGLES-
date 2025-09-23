@@ -1,5 +1,5 @@
 <?php
-// /php/finalizar_compra.php (VERSÃO CORRIGIDA COM pg_query_params)
+// /php/finalizar_compra.php (VERSÃO DEFINITIVA CORRIGIDA)
 
 session_start();
 require_once "db_config.php";
@@ -7,18 +7,26 @@ header('Content-Type: application/json');
 
 $response = ['status' => 'error', 'message' => 'Ocorreu um erro desconhecido.'];
 
+// Checa se o usuário passou pela tela de senha
 if (!isset($_SESSION['vendedor_autenticado']) || $_SESSION['vendedor_autenticado'] !== true) {
     $response['message'] = 'Acesso não autorizado.';
     echo json_encode($response);
     exit;
 }
 
+// =================== CORREÇÃO CRÍTICA APLICADA AQUI ===================
+// Os IDs do cliente e do vendedor vêm do formulário em dados_compra.php
 $cliente_id = $_POST['cliente_id'] ?? 0;
 $vendedor_id = $_POST['vendedor_id'] ?? 0;
+
+// O ID do usuário que está registrando a compra (o admin/chefe logado) vem da sessão
+$registrado_por_usuario_id = $_SESSION['usuario_id'] ?? 0;
+// ====================================================================
+
 $valor_formatado = $_POST['valor'] ?? '0';
 
-if (empty($cliente_id) || empty($vendedor_id) || empty($valor_formatado)) {
-    $response['message'] = 'Dados da compra inválidos.';
+if (empty($cliente_id) || empty($vendedor_id) || empty($valor_formatado) || empty($registrado_por_usuario_id)) {
+    $response['message'] = 'Dados da compra inválidos. Cliente, vendedor ou usuário logado não foram identificados.';
     echo json_encode($response);
     exit;
 }
@@ -29,36 +37,29 @@ $valor_base_sorteio = pg_fetch_assoc($result_config)['valor'] ?? 50;
 if ($valor_base_sorteio <= 0) { $valor_base_sorteio = 50; }
 $valor_sem_ponto = str_replace('.', '', $valor_formatado);
 $valor_para_banco = str_replace(',', '.', $valor_sem_ponto);
-$usuario_id = $_SESSION['usuario_id'] ?? 1; // Pega o ID do admin/loja da sessão
 $entradas_sorteio = 1 + floor($valor_para_banco / $valor_base_sorteio);
 $numeros_da_sorte_gerados = [];
 
 pg_query($link, "BEGIN");
 
 try {
-    // =================== LÓGICA DE BANCO DE DADOS ATUALIZADA ===================
-
-    // Inserção na tabela de compras usando pg_query_params
+    // Inserção na tabela de compras usando os IDs corretos
+    // usuario_id é quem registrou, vendedor_id é quem vendeu.
     $sql_compra = "INSERT INTO compras (cliente_id, valor, vendedor_id, usuario_id) VALUES ($1, $2, $3, $4) RETURNING id";
-    $result_compra = pg_query_params($link, $sql_compra, array($cliente_id, $valor_para_banco, $vendedor_id, $usuario_id));
+    $result_compra = pg_query_params($link, $sql_compra, array($cliente_id, $valor_para_banco, $vendedor_id, $registrado_por_usuario_id));
     
-    if (!$result_compra) {
-        throw new Exception(pg_last_error($link));
-    }
-    
+    if (!$result_compra) { throw new Exception(pg_last_error($link)); }
     $compra_id = pg_fetch_assoc($result_compra)['id'];
 
-    // Loop de inserção na tabela de sorteio usando pg_query_params
+    // O número da sorte é associado a quem registrou a compra (o admin/chefe)
     $sql_sorteio = "INSERT INTO sorteio (cliente_id, compra_id, usuario_id) VALUES ($1, $2, $3) RETURNING id";
     for ($i = 0; $i < $entradas_sorteio; $i++) {
-        $result_sorteio = pg_query_params($link, $sql_sorteio, array($cliente_id, $compra_id, $usuario_id));
-        if (!$result_sorteio) {
-            throw new Exception(pg_last_error($link));
-        }
+        $result_sorteio = pg_query_params($link, $sql_sorteio, array($cliente_id, $compra_id, $registrado_por_usuario_id));
+        if (!$result_sorteio) { throw new Exception(pg_last_error($link)); }
         $numeros_da_sorte_gerados[] = pg_fetch_assoc($result_sorteio)['id'];
     }
 
-    // Busca os dados do cliente para o webhook usando pg_query_params
+    // Busca os dados do cliente para o webhook (inalterado)
     $sql_cliente = "SELECT nome_completo, cpf, whatsapp FROM clientes WHERE id = $1";
     $result_cliente = pg_query_params($link, $sql_cliente, array($cliente_id));
     $dados_cliente = pg_fetch_assoc($result_cliente);
@@ -78,15 +79,20 @@ try {
     }
 
     pg_query($link, "COMMIT");
+
+    // Limpa a sessão para forçar a busca de um novo cliente no próximo atendimento
     unset($_SESSION['vendedor_autenticado']);
+    unset($_SESSION['cliente_id']);
+    unset($_SESSION['cliente_nome']);
+    unset($_SESSION['cpf_cliente']);
+
     $response['status'] = 'success';
     $response['message'] = 'Compra registrada com sucesso!';
     $response['redirect'] = 'sucesso.php';
 
 } catch (Exception $e) {
     pg_query($link, "ROLLBACK");
-    // Para depuração, você pode querer ver o erro real: error_log($e->getMessage());
-    $response['message'] = 'Erro ao salvar os dados no banco.';
+    $response['message'] = 'Erro ao salvar os dados no banco: ' . $e->getMessage();
 }
 
 pg_close($link);
