@@ -1,5 +1,5 @@
 <?php
-// /sorteio.php (VERSÃO SEM DADOS SENSÍVEIS)
+// /sorteio.php (VERSÃO CORRIGIDA)
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -11,18 +11,22 @@ if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
 require_once 'php/db_config.php';
 
 $total_cupons = 0;
-$admin_id = $_SESSION['usuario_id'];
-$sql_cupons = "SELECT COUNT(*) as total FROM sorteio WHERE usuario_id = $1";
-$stmt_cupons = pg_prepare($link, "contar_cupons_query", $sql_cupons);
-if ($stmt_cupons) {
-    $result = pg_execute($link, "contar_cupons_query", [$admin_id]);
-    if ($result && pg_num_rows($result) > 0) {
-        $row = pg_fetch_assoc($result);
-        $total_cupons = $row['total'];
-    }
+
+// =================== CORREÇÃO CRÍTICA APLICADA AQUI ===================
+// A cláusula "WHERE" foi removida para contar TODOS os cupons da urna.
+$sql_cupons = "SELECT COUNT(*) as total FROM sorteio";
+$result_cupons = pg_query($link, $sql_cupons);
+
+if ($result_cupons) {
+    $row = pg_fetch_assoc($result_cupons);
+    $total_cupons = $row['total'];
 }
+// ====================================================================
+
 include 'templates/header.php';
 ?>
+
+<title>Realizar Sorteio</title>
 
 <title>Realizar Sorteio</title>
 
