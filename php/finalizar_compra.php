@@ -1,5 +1,5 @@
 <?php
-// /php/finalizar_compra.php (VERSÃO DEFINITIVA CORRIGIDA)
+// /php/finalizar_compra.php (VERSÃO CORRETA - SEM LOGIN NECESSÁRIO)
 
 session_start();
 require_once "db_config.php";
@@ -7,26 +7,17 @@ header('Content-Type: application/json');
 
 $response = ['status' => 'error', 'message' => 'Ocorreu um erro desconhecido.'];
 
-// Checa se o usuário passou pela tela de senha
-if (!isset($_SESSION['vendedor_autenticado']) || $_SESSION['vendedor_autenticado'] !== true) {
-    $response['message'] = 'Acesso não autorizado.';
-    echo json_encode($response);
-    exit;
-}
+// A única coisa que precisamos da sessão é o ID do cliente, definido após a busca de CPF.
+$cliente_id = $_SESSION['cliente_id'] ?? 0;
 
-// =================== CORREÇÃO CRÍTICA APLICADA AQUI ===================
-// Os IDs do cliente e do vendedor vêm do formulário em dados_compra.php
-$cliente_id = $_POST['cliente_id'] ?? 0;
+// O resto dos dados vem do formulário da página dados_compra.php
 $vendedor_id = $_POST['vendedor_id'] ?? 0;
-
-// O ID do usuário que está registrando a compra (o admin/chefe logado) vem da sessão
-$registrado_por_usuario_id = $_SESSION['usuario_id'] ?? 0;
-// ====================================================================
-
 $valor_formatado = $_POST['valor'] ?? '0';
 
-if (empty($cliente_id) || empty($vendedor_id) || empty($valor_formatado) || empty($registrado_por_usuario_id)) {
-    $response['message'] = 'Dados da compra inválidos. Cliente, vendedor ou usuário logado não foram identificados.';
+
+// A nova validação, muito mais simples:
+if (empty($cliente_id) || empty($vendedor_id) || empty($valor_formatado)) {
+    $response['message'] = 'Dados da compra inválidos. Cliente, vendedor ou valor não foram informados.';
     echo json_encode($response);
     exit;
 }
@@ -43,18 +34,17 @@ $numeros_da_sorte_gerados = [];
 pg_query($link, "BEGIN");
 
 try {
-    // Inserção na tabela de compras usando os IDs corretos
-    // usuario_id é quem registrou, vendedor_id é quem vendeu.
+    // Inserção na tabela de compras: tanto 'vendedor_id' quanto 'usuario_id' usam o ID do vendedor selecionado no formulário.
     $sql_compra = "INSERT INTO compras (cliente_id, valor, vendedor_id, usuario_id) VALUES ($1, $2, $3, $4) RETURNING id";
-    $result_compra = pg_query_params($link, $sql_compra, array($cliente_id, $valor_para_banco, $vendedor_id, $registrado_por_usuario_id));
+    $result_compra = pg_query_params($link, $sql_compra, array($cliente_id, $valor_para_banco, $vendedor_id, $vendedor_id));
     
     if (!$result_compra) { throw new Exception(pg_last_error($link)); }
     $compra_id = pg_fetch_assoc($result_compra)['id'];
 
-    // O número da sorte é associado a quem registrou a compra (o admin/chefe)
+    // Inserção na tabela de sorteio: o 'usuario_id' também é o da vendedora que fez a venda.
     $sql_sorteio = "INSERT INTO sorteio (cliente_id, compra_id, usuario_id) VALUES ($1, $2, $3) RETURNING id";
     for ($i = 0; $i < $entradas_sorteio; $i++) {
-        $result_sorteio = pg_query_params($link, $sql_sorteio, array($cliente_id, $compra_id, $registrado_por_usuario_id));
+        $result_sorteio = pg_query_params($link, $sql_sorteio, array($cliente_id, $compra_id, $vendedor_id));
         if (!$result_sorteio) { throw new Exception(pg_last_error($link)); }
         $numeros_da_sorte_gerados[] = pg_fetch_assoc($result_sorteio)['id'];
     }
@@ -80,11 +70,13 @@ try {
 
     pg_query($link, "COMMIT");
 
-    // Limpa a sessão para forçar a busca de um novo cliente no próximo atendimento
-    unset($_SESSION['vendedor_autenticado']);
+    // Limpa a sessão do cliente para forçar uma nova busca no próximo atendimento
     unset($_SESSION['cliente_id']);
     unset($_SESSION['cliente_nome']);
     unset($_SESSION['cpf_cliente']);
+    
+    // Podemos remover o 'vendedor_autenticado' já que não é um login real
+    unset($_SESSION['vendedor_autenticado']);
 
     $response['status'] = 'success';
     $response['message'] = 'Compra registrada com sucesso!';
