@@ -1,4 +1,11 @@
 <?php
+// =================== FORÇAR O NAVEGADOR A NÃO USAR CACHE ===================
+// Estas linhas instruem o navegador a sempre buscar a versão mais recente desta página.
+header("Cache-Control: no-cache, no-store, must-revalidate"); // HTTP 1.1.
+header("Pragma: no-cache"); // HTTP 1.0.
+header("Expires: 0"); // Proxies.
+// =========================================================================
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -14,9 +21,7 @@ if (session_status() === PHP_SESSION_NONE) {
     <title>Sistema de Sorteio</title>
 
     <?php
-    // FUNÇÃO PARA CACHE BUSTING AUTOMÁTICO
-    // Esta função adiciona a data da última modificação do arquivo na URL,
-    // forçando o navegador a baixar a nova versão sempre que o arquivo for alterado.
+    // Função para cache busting automático de arquivos CSS/JS/Imagens
     function version(string $file): string {
         $filePath = realpath(__DIR__ . '/../' . ltrim($file, '/'));
         if ($filePath && file_exists($filePath)) {
