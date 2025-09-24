@@ -129,25 +129,37 @@ include 'templates/header.php';
 
     <section class="faq-section">
         <h2>Fluxo de Registro de Compra</h2>
+
         <div class="faq-item">
             <button class="faq-question">Como registrar uma compra para um cliente?</button>
             <div class="faq-answer">
-                <p>Aqui você vai colocar seu vídeo ou tutorial em texto...</p>
+                <p>
+                    Para você registrar uma compra, basta clicar no botão "Quero Participar" e inserir o CPF do cliente.<br>
+                    Após isso você deve confirmar os dados dele e inserir a senha da loja.<br>
+                    Por fim, basta apenas adicionar o valor e quem realizou a venda.
+                </p>
             </div>
         </div>
+
         <div class="faq-item">
             <button class="faq-question">O que fazer se um cliente não tiver cadastro?</button>
             <div class="faq-answer">
-                <p>Aqui você vai colocar seu vídeo ou tutorial em texto...</p>
+                <p>
+                    Caso o cliente não possua um cadastro, basta fazer os mesmos passos, porém, ao informar o CPF surgirá um formulário para preenchimento. 
+                    Vale ressaltar que ele PRECISA informar o telefone e a data de nascimento.
+                </p>
             </div>
         </div>
+
         <div class="faq-item">
             <button class="faq-question">Como os números da sorte são calculados?</button>
             <div class="faq-answer">
                 <p>Aqui você vai colocar seu vídeo ou tutorial em texto...</p>
             </div>
         </div>
+
     </section>
+
 
     <section class="faq-section">
         <h2>Para Vendedoras</h2>
