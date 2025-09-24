@@ -12,9 +12,24 @@ if (session_status() === PHP_SESSION_NONE) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
     <title>Sistema de Sorteio</title>
-    <link rel="icon" type="image/png" href="/favicon.jpg">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="css/style.css">
+
+    <?php
+    // FUNÇÃO PARA CACHE BUSTING AUTOMÁTICO
+    // Esta função adiciona a data da última modificação do arquivo na URL,
+    // forçando o navegador a baixar a nova versão sempre que o arquivo for alterado.
+    function version(string $file): string {
+        $filePath = realpath(__DIR__ . '/../' . ltrim($file, '/'));
+        if ($filePath && file_exists($filePath)) {
+            return $file . '?v=' . filemtime($filePath);
+        }
+        return $file;
+    }
+    ?>
+
+    <link rel="icon" type="image/png" href="<?php echo version('/favicon.jpg'); ?>">
+    <link rel="manifest" href="<?php echo version('/manifest.json'); ?>">
+    <link rel="stylesheet" href="<?php echo version('css/style.css'); ?>">
+
 </head>
 <body>
 
@@ -46,7 +61,8 @@ if (!isset($show_header) || $show_header !== false):
                     <a href="base_clientes.php">Base de Clientes</a>
                     <a href="sorteio.php">Sorteio</a>
                     <a href="gerenciamento.php">Gerenciamento</a>
-                    <a href="faq.php">Central de Ajuda</a> </nav>
+                    <a href="faq.php">Central de Ajuda</a>
+                </nav>
             
                 <div class="header-actions">
                     <button class="hamburger-menu" id="hamburger-menu">
@@ -65,7 +81,8 @@ if (!isset($show_header) || $show_header !== false):
                 <nav class="header-nav">
                     <a href="dashboard_vendedora.php">Início</a>
                     <a href="base_clientes_vendedor.php">Base de Clientes</a>
-                    <a href="faq.php">Central de Ajuda</a> </nav>
+                    <a href="faq.php">Central de Ajuda</a>
+                </nav>
                 <div class="header-actions">
                     <a href="logout.php" class="btn-logout">Sair</a>
                     <button class="hamburger-menu" id="hamburger-menu">
@@ -101,7 +118,8 @@ if (!isset($show_header) || $show_header !== false):
                 <li><a href="base_clientes.php">Base de Clientes</a></li>
                 <li><a href="sorteio.php">Sorteio</a></li>
                 <li><a href="gerenciamento.php">Gerenciamento</a></li>
-                <li><a href="faq.php">Central de Ajuda</a></li> <li><a href="logout.php">Sair</a></li>
+                <li><a href="faq.php">Central de Ajuda</a></li>
+                <li><a href="logout.php">Sair</a></li>
             </ul>
         </nav>
         <?php elseif ($_SESSION['cargo'] == 2): // Menu da Vendedora ?>
@@ -109,7 +127,8 @@ if (!isset($show_header) || $show_header !== false):
             <ul>
                 <li><a href="dashboard_vendedora.php">Início</a></li>
                 <li><a href="base_clientes_vendedor.php">Base de Clientes</a></li>
-                <li><a href="faq.php">Central de Ajuda</a></li> <li><a href="logout.php">Sair</a></li>
+                <li><a href="faq.php">Central de Ajuda</a></li>
+                <li><a href="logout.php">Sair</a></li>
             </ul>
         </nav>
         <?php endif; ?>
