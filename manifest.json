@@ -7,13 +7,13 @@
   "theme_color": "#2c2c2c",
   "icons": [
     {
-      "src": "/favicon.png",
-      "type": "image/png",
+      "src": "/images/weagles.jpg",
+      "type": "image/jpeg",
       "sizes": "192x192"
     },
     {
-      "src": "/favicon.png",
-      "type": "image/png",
+      "src": "/images/weagles.jpg",
+      "type": "image/jpeg",
       "sizes": "512x512"
     }
   ]
