@@ -11,33 +11,38 @@ if (!isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
 
 require_once 'php/db_config.php';
 
-// =================== INÍCIO DO BLOCO CORRIGIDO ===================
-// 1. BUSCA A CONFIGURAÇÃO DO SORTEIO (Convertido para PG)
+// 1. BUSCA A CONFIGURAÇÃO DO SORTEIO (Inalterado)
 $sql_config = "SELECT * FROM configuracoes WHERE chave = 'sorteio_valor_base_extra'";
 $result_config = pg_query($link, $sql_config);
 $config_sorteio = pg_fetch_assoc($result_config);
 
-// 2. BUSCA O TOTAL DE CUPONS (Convertido para PG)
+
+// =================== INÍCIO DO BLOCO CORRIGIDO ===================
+// 2. BUSCA O TOTAL DE CUPONS (Correção aplicada)
 $total_cupons = 0;
-$admin_id = $_SESSION['usuario_id'];
-$sql_cupons = "SELECT COUNT(*) as total FROM sorteio WHERE usuario_id = $1";
+// $admin_id = $_SESSION['usuario_id']; // <-- Não é mais necessário para esta consulta
+
+// CORREÇÃO 1: Removemos o "WHERE usuario_id = $1"
+$sql_cupons = "SELECT COUNT(*) as total FROM sorteio"; 
 $stmt_cupons = pg_prepare($link, "contar_cupons_geral_query", $sql_cupons);
+
 if ($stmt_cupons) {
-    $result_cupons = pg_execute($link, "contar_cupons_geral_query", [$admin_id]);
+    // CORREÇÃO 2: Removemos o parâmetro [$admin_id]
+    $result_cupons = pg_execute($link, "contar_cupons_geral_query", []); 
     if ($result_cupons) {
         $total_cupons = pg_fetch_assoc($result_cupons)['total'];
     }
 }
-pg_close($link);
 // ==================== FIM DO BLOCO CORRIGIDO =====================
 
+pg_close($link);
 include 'templates/header.php';
 ?>
 
 <title>Gerenciar Sorteio</title>
 
 <style>
-    /* Estilos para o tema escuro */
+    /* Estilos para o tema escuro (inalterados) */
     .page-header h1 { color: var(--cor-dourado) !important; }
     .page-header p { color: var(--cor-branco) !important; opacity: 0.8; }
     .settings-form { background-color: rgba(44, 44, 44, 0.5) !important; backdrop-filter: blur(10px) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; }
@@ -96,7 +101,7 @@ include 'templates/header.php';
 
 
 <script>
-// O JavaScript não precisa de alteração
+// O JavaScript não precisa de alteração (código JS inalterado)
 document.addEventListener('DOMContentLoaded', function() {
     const formRegra = document.getElementById('form-regra-sorteio');
     const successMessage = document.getElementById('form-success-message');
