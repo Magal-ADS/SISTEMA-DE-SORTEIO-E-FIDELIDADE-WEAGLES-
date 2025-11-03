@@ -1,34 +1,34 @@
 <?php
-// /php/get_participantes.php (Versão PostgreSQL)
+// /php/get_participantes.php (VERSÃO CORRIGIDA)
 
 session_start();
-require_once "db_config.php"; // Este arquivo já usa a conexão pg_connect
+require_once "db_config.php"; 
 header('Content-Type: application/json');
 
-// 1. Bloco de segurança (lógica inalterada)
+// 1. Bloco de segurança (inalterado)
 if (!isset($_SESSION['usuario_id']) || !isset($_SESSION['cargo']) || $_SESSION['cargo'] != 1) {
     echo json_encode(['status' => 'error', 'message' => 'Acesso não autorizado.', 'participantes' => []]);
     exit;
 }
 
-$admin_id = $_SESSION['usuario_id'];
+// $admin_id = $_SESSION['usuario_id']; // <-- NÃO É MAIS NECESSÁRIO
 $participantes = [];
 
-// 2. Query SQL adaptada para placeholders do PostgreSQL ($1, $2, etc.)
+// 2. Query SQL CORRIGIDA
+// Removemos o "WHERE s.usuario_id = $1" para buscar TODOS os participantes
 $sql = "SELECT DISTINCT c.nome_completo 
         FROM clientes c
-        JOIN sorteio s ON c.id = s.cliente_id
-        WHERE s.usuario_id = $1"; // <-- MUDANÇA: Placeholder '?' virou '$1'
+        JOIN sorteio s ON c.id = s.cliente_id";
 
 // 3. Preparação e execução da consulta com funções pg_*
-$stmt = pg_prepare($link, "get_participantes_query", $sql);
+// Damos um novo nome único para a query preparada
+$stmt = pg_prepare($link, "get_todos_participantes_query", $sql); 
 
 if ($stmt) {
-    // Executa a query preparada, passando os parâmetros em um array
-    $result = pg_execute($link, "get_participantes_query", [$admin_id]);
+    // Executa a query sem parâmetros, pois removemos o $admin_id
+    $result = pg_execute($link, "get_todos_participantes_query", []);
 
     if ($result) {
-        // Itera sobre os resultados da mesma forma
         while ($row = pg_fetch_assoc($result)) {
             $participantes[] = $row['nome_completo'];
         }
@@ -36,15 +36,12 @@ if ($stmt) {
         echo json_encode(['status' => 'success', 'participantes' => $participantes]);
 
     } else {
-        // Erro na execução da consulta
         echo json_encode(['status' => 'error', 'message' => 'Erro ao executar a consulta.', 'participantes' => []]);
     }
 
 } else {
-    // Erro na preparação da consulta
     echo json_encode(['status' => 'error', 'message' => 'Erro na preparação da consulta ao banco de dados.', 'participantes' => []]);
 }
 
-// 4. Fecha a conexão com o PostgreSQL
 pg_close($link);
 ?>
