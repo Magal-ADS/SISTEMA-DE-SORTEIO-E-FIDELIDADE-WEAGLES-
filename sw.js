@@ -4,8 +4,8 @@ const urlsToCache = [
   '/index.php',
   '/offline.html',
   '/css/style.css',
-  '/images/weagles.jpg',
-  '/favicon.png'
+  '/images/weagles.jpg'
+  // '/favicon.png'  <-- LINHA PROBLEMÁTICA REMOVIDA
 ];
 
 // Evento de Instalação: Salva os arquivos principais no cache
@@ -14,12 +14,13 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Cache aberto');
-        return cache.addAll(urlsToCache);
+        // Agora o addAll() vai funcionar!
+        return cache.addAll(urlsToCache); 
       })
   );
 });
 
-// Evento de Fetch: Intercepta as requisições
+// Evento de Fetch: Intercepta as requisições (inalterado)
 self.addEventListener('fetch', event => {
   event.respondWith(
     // Tenta encontrar o recurso no cache primeiro
