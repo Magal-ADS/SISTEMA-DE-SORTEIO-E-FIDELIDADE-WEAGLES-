@@ -40,7 +40,9 @@ include 'templates/header.php';
 
         <div class="form-group">
             <label for="valor">Valor da compra (R$)</label>
-            <input type="text" id="valor" name="valor" placeholder="0,00" required inputmode="numeric">
+            
+            <input type="text" id="valor" name="valor" placeholder="0,00" required inputmode="numeric" autocomplete="off">
+        
         </div>
 
         <div class="form-group">
